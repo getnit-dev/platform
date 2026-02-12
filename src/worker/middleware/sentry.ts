@@ -4,7 +4,7 @@ import type { AppEnv } from "../types";
 
 export const sentryMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   const vars = c.var as Partial<AppEnv["Variables"]>;
-  const userId = vars.auth?.userId ?? vars.apiKey?.userId;
+  const userId = vars.auth?.userId;
 
   if (userId) {
     Sentry.setUser({ id: userId });
@@ -13,9 +13,7 @@ export const sentryMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   Sentry.setTag("route", c.req.routePath ?? c.req.path);
   Sentry.setTag("method", c.req.method);
 
-  if (vars.apiKey) {
-    Sentry.setTag("auth_mode", "api-key");
-  } else if (vars.auth) {
+  if (vars.auth) {
     Sentry.setTag("auth_mode", "session");
   }
 

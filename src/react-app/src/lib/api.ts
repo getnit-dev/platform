@@ -215,23 +215,6 @@ export interface Bug {
   resolvedAt: string | null;
 }
 
-export interface VirtualKey {
-  id: string;
-  keyHash: string;
-  keyHashPrefix: string;
-  projectId: string | null;
-  name: string | null;
-  modelsAllowed: string[];
-  maxBudget: number | null;
-  budgetDuration: string | null;
-  rpmLimit: number | null;
-  tpmLimit: number | null;
-  spendTotal: number;
-  expiresAt: string | null;
-  revoked: boolean;
-  createdAt: string;
-}
-
 export interface PlatformApiKey {
   id: string;
   keyHash: string;
@@ -247,8 +230,6 @@ export interface PlatformApiKey {
 export interface UsageSummary {
   totalRequests: number;
   totalTokens: number;
-  providerCostUsd: number;
-  marginUsd: number;
   totalCostUsd: number;
 }
 
@@ -264,21 +245,7 @@ export interface UsageBreakdownRow {
   model: string;
   requests: number;
   tokens: number;
-  providerCostUsd: number;
-  marginUsd: number;
   totalCostUsd: number;
-}
-
-export interface UsageKeyRow {
-  keyHash: string | null;
-  keyHashPrefix: string | null;
-  requests: number;
-  tokens: number;
-  totalCostUsd: number;
-  lastSeenAt: string | null;
-  maxBudget: number | null;
-  spendTotal: number | null;
-  revoked: boolean;
 }
 
 export interface UploadResult {
@@ -478,53 +445,6 @@ export const api = {
       })
   },
 
-  llmKeys: {
-    list: (query?: { projectId?: string }) =>
-      request<{ keys: VirtualKey[] }>("/api/llm-keys", {
-        query
-      }),
-
-    create: (input: {
-      projectId?: string;
-      name?: string;
-      modelsAllowed?: string[];
-      maxBudget?: number;
-      budgetDuration?: string;
-      rpmLimit?: number;
-      tpmLimit?: number;
-      expiresAt?: string;
-    }) =>
-      request<{ key: string; keyId: string; keyHash: string; projectId: string | null; expiresAt: string | null }>("/api/llm-keys", {
-        method: "POST",
-        body: input
-      }),
-
-    revoke: (keyId: string) =>
-      request<{ revoked: boolean }>(`/api/llm-keys/${keyId}/revoke`, {
-        method: "POST"
-      }),
-
-    rotate: (keyId: string) =>
-      request<{ revokedKeyId: string; keyId: string; key: string; keyHash: string }>(`/api/llm-keys/${keyId}/rotate`, {
-        method: "POST"
-      }),
-
-    update: (keyId: string, input: {
-      name?: string | null;
-      modelsAllowed?: string[];
-      maxBudget?: number | null;
-      budgetDuration?: string | null;
-      rpmLimit?: number | null;
-      tpmLimit?: number | null;
-      expiresAt?: string | null;
-      revoked?: boolean;
-    }) =>
-      request<{ updated: boolean }>(`/api/llm-keys/${keyId}`, {
-        method: "PATCH",
-        body: input
-      })
-  },
-
   llmUsage: {
     summary: (query?: { projectId?: string; days?: number }) =>
       request<{ summary: UsageSummary }>("/api/llm-usage/summary", {
@@ -538,11 +458,6 @@ export const api = {
 
     breakdown: (query?: { projectId?: string; days?: number }) =>
       request<{ breakdown: UsageBreakdownRow[] }>("/api/llm-usage/breakdown", {
-        query
-      }),
-
-    keys: (query?: { projectId?: string; days?: number }) =>
-      request<{ keys: UsageKeyRow[] }>("/api/llm-usage/keys", {
         query
       })
   },

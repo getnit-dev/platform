@@ -1,11 +1,10 @@
 import type { Context } from "hono";
-import type { AppBindings, AppEnv, AuthSession, VirtualKeyContext } from "../types";
+import type { AppBindings, AppEnv, AuthSession } from "../types";
 
 export interface RequestActor {
   mode: "session" | "api-key";
   userId: string;
   projectId: string | null;
-  keyHash: string | null;
 }
 
 function getSession(c: Context<AppEnv>): AuthSession | null {
@@ -17,36 +16,19 @@ function getSession(c: Context<AppEnv>): AuthSession | null {
   return session;
 }
 
-function getApiKey(c: Context<AppEnv>): VirtualKeyContext | null {
-  const apiKey = (c.var as Partial<AppEnv["Variables"]>).apiKey;
-  if (!apiKey?.userId || !apiKey.keyHash) {
-    return null;
-  }
-
-  return apiKey;
-}
-
 export function getRequestActor(c: Context<AppEnv>): RequestActor | null {
-  const apiKey = getApiKey(c);
-  if (apiKey) {
-    return {
-      mode: "api-key",
-      userId: apiKey.userId,
-      projectId: apiKey.projectId,
-      keyHash: apiKey.keyHash
-    };
-  }
-
   const session = getSession(c);
   if (!session) {
     return null;
   }
 
+  // API key auth sets sessionToken to "" and may include a projectId
+  const isApiKey = session.sessionToken === "";
+
   return {
-    mode: "session",
+    mode: isApiKey ? "api-key" : "session",
     userId: session.userId,
-    projectId: null,
-    keyHash: null
+    projectId: session.projectId ?? null
   };
 }
 

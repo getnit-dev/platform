@@ -49,7 +49,7 @@ export async function aggregateUsageDaily(env: Pick<AppBindings, "DB">): Promise
         substr(timestamp, 1, 10),
         COUNT(*),
         SUM(prompt_tokens + completion_tokens),
-        SUM(cost_usd + margin_usd),
+        SUM(cost_usd),
         datetime('now'),
         datetime('now')
       FROM usage_events

@@ -37,79 +37,9 @@ async function checkProjectAlerts(
     return;
   }
 
-  // Check budget alerts
-  if (config.budget_alert_percent) {
-    await checkBudgetAlerts(db, config);
-  }
-
   // Check spending threshold alerts
   if (config.email_threshold_usd) {
     await checkSpendingAlerts(db, config);
-  }
-}
-
-/**
- * Check if any virtual keys are approaching their budget limit
- */
-async function checkBudgetAlerts(
-  db: D1Database,
-  config: Record<string, unknown>
-): Promise<void> {
-  const budgetPercent = Number(config.budget_alert_percent);
-  if (!budgetPercent) return;
-
-  // Get all keys for this project with budgets
-  const keys = await db
-    .prepare(
-      `SELECT * FROM virtual_keys
-       WHERE project_id = ?
-         AND revoked = 0
-         AND max_budget IS NOT NULL
-         AND max_budget > 0`
-    )
-    .bind(config.project_id)
-    .all();
-
-  if (!keys.results) return;
-
-  for (const key of keys.results) {
-    const maxBudget = Number(key.max_budget);
-    const spendTotal = Number(key.spend_total);
-
-    if (!maxBudget) continue;
-
-    const percentUsed = (spendTotal / maxBudget) * 100;
-
-    if (percentUsed >= budgetPercent) {
-      // Check if we already sent this alert recently (within last 24 hours)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const keyPrefix = String(key.key_hash).slice(0, 8);
-
-      const recentAlert = await db
-        .prepare(
-          `SELECT id FROM alert_history
-           WHERE project_id = ?
-             AND alert_type = 'budget_threshold'
-             AND created_at >= ?
-             AND message LIKE ?
-           LIMIT 1`
-        )
-        .bind(config.project_id, oneDayAgo, `%${keyPrefix}%`)
-        .first();
-
-      if (recentAlert) {
-        continue; // Already alerted recently
-      }
-
-      const message = `⚠️ Budget Alert: Virtual key ${keyPrefix}... has used ${percentUsed.toFixed(1)}% of its budget ($${spendTotal.toFixed(2)} / $${maxBudget.toFixed(2)})`;
-
-      await sendAlert(db, config, {
-        alertType: "budget_threshold",
-        message,
-        threshold: budgetPercent,
-        currentValue: percentUsed
-      });
-    }
   }
 }
 

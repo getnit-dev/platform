@@ -7,9 +7,8 @@ export interface UsageEvent {
   promptTokens: number;
   completionTokens: number;
   costUsd: number;
-  marginUsd: number;
   cacheHit: boolean;
-  source: "api" | "platform" | "byok" | "cli";
+  source: "byok" | "cli";
   timestamp: string;
 }
 
@@ -18,16 +17,7 @@ export interface AuthSession {
   sessionToken: string;
   email?: string | null;
   name?: string | null;
-}
-
-export interface VirtualKeyContext {
-  keyHash: string;
-  userId: string;
-  projectId: string | null;
-  rpmLimit: number | null;
-  tpmLimit: number | null;
-  maxBudget: number | null;
-  spendTotal: number;
+  projectId?: string | null;
 }
 
 export type AppBindings = {
@@ -41,14 +31,6 @@ export type AppBindings = {
   USAGE_EVENTS_RETENTION_DAYS?: string;
   USAGE_DAILY_RETENTION_DAYS?: string;
   DRIFT_RETENTION_DAYS?: string;
-  AI_GATEWAY_BASE_URL: string;
-  AI_GATEWAY_TOKEN?: string;
-  AI_GATEWAY_BYOK_ALIAS_MAP?: string;
-  AI_GATEWAY_MAX_ATTEMPTS?: string;
-  AI_GATEWAY_RETRY_DELAY_MS?: string;
-  AI_GATEWAY_RETRY_BACKOFF?: string;
-  AI_GATEWAY_REQUEST_TIMEOUT_MS?: string;
-  DEFAULT_MARGIN_MULTIPLIER?: string;
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
@@ -62,7 +44,6 @@ export type AppBindings = {
 
 export type AppVariables = {
   auth: AuthSession;
-  apiKey: VirtualKeyContext;
 };
 
 export type AppEnv = {

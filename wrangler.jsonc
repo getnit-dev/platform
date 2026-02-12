@@ -56,19 +56,11 @@
 		]
 	},
 	"vars": {
-		"AI_GATEWAY_BASE_URL": "https://gateway.ai.cloudflare.com/v1/64ec3757b065aee6837026b82370ae45/nit-gateway",
-		// set via: wrangler secret put AI_GATEWAY_TOKEN
 		// set via: wrangler secret put USAGE_INGEST_TOKEN
 		// set via: wrangler secret put GITHUB_WEBHOOK_SECRET
 		// set via: wrangler secret put SENTRY_DSN
 		"SENTRY_TRACES_SAMPLE_RATE": "0.1",
 		"SENTRY_ENVIRONMENT": "production",
-		"AI_GATEWAY_BYOK_ALIAS_MAP": "{\"openrouter\":\"default\"}",
-		"AI_GATEWAY_MAX_ATTEMPTS": "2",
-		"AI_GATEWAY_RETRY_DELAY_MS": "250",
-		"AI_GATEWAY_RETRY_BACKOFF": "2",
-		"AI_GATEWAY_REQUEST_TIMEOUT_MS": "30000",
-		"DEFAULT_MARGIN_MULTIPLIER": "1.15",
 		"USAGE_EVENTS_RETENTION_DAYS": "180",
 		"USAGE_DAILY_RETENTION_DAYS": "730",
 		"DRIFT_RETENTION_DAYS": "365",

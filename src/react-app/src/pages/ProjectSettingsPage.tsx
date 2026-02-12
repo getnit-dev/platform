@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, Trash2, Key, Bell, Users, AlertTriangle, Shield, Plus, RotateCw } from "lucide-react";
-import { EmptyState, Panel, StatusPill, TextInput } from "../components/ui";
+import { Copy, Trash2, Bell, Users, AlertTriangle, Shield, Plus } from "lucide-react";
+import { EmptyState, Panel, TextInput } from "../components/ui";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { api, ApiError, type DashboardUser, type Project, type VirtualKey, type PlatformApiKey } from "../lib/api";
-import { toCurrency, toDateTime } from "../lib/format";
+import { api, ApiError, type DashboardUser, type Project, type PlatformApiKey } from "../lib/api";
+import { toDateTime } from "../lib/format";
 import { useAlertConfig } from "../lib/alert-config";
 import { ProjectPageShell } from "./project-shared";
 import { cn } from "../lib/utils";
@@ -16,17 +16,15 @@ import { cn } from "../lib/utils";
 
 interface SettingsState {
   loading: boolean;
-  keys: VirtualKey[];
   platformKeys: PlatformApiKey[];
   user: DashboardUser | null;
   error: string | null;
 }
 
-const tabs = ["Virtual Keys", "API Keys", "Alerts", "Team", "Danger Zone"] as const;
+const tabs = ["API Keys", "Alerts", "Team", "Danger Zone"] as const;
 type SettingsTab = typeof tabs[number];
 
-const tabMeta: Record<SettingsTab, { icon: typeof Key }> = {
-  "Virtual Keys": { icon: Key },
+const tabMeta: Record<SettingsTab, { icon: typeof Shield }> = {
   "API Keys": { icon: Shield },
   "Alerts": { icon: Bell },
   "Team": { icon: Users },
@@ -34,241 +32,8 @@ const tabMeta: Record<SettingsTab, { icon: typeof Key }> = {
 };
 
 /* -------------------------------------------------------------------------- */
-/*  Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
-function parseNumberOrUndefined(value: string): number | undefined {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-/* -------------------------------------------------------------------------- */
-/*  KeyRow                                                                     */
-/* -------------------------------------------------------------------------- */
-
-function KeyRow(props: {
-  keyRecord: VirtualKey;
-  onRevoke: (id: string) => Promise<void>;
-  onRotate: (id: string) => Promise<void>;
-  onUpdate: (id: string, patch: { name?: string; maxBudget?: number; rpmLimit?: number; tpmLimit?: number; modelsAllowed?: string[] }) => Promise<void>;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [name, setName] = useState(props.keyRecord.name ?? "");
-  const [maxBudget, setMaxBudget] = useState(props.keyRecord.maxBudget?.toString() ?? "");
-  const [rpmLimit, setRpmLimit] = useState(props.keyRecord.rpmLimit?.toString() ?? "");
-  const [tpmLimit, setTpmLimit] = useState(props.keyRecord.tpmLimit?.toString() ?? "");
-  const [modelsAllowed, setModelsAllowed] = useState(props.keyRecord.modelsAllowed.join(", "));
-
-  async function save() {
-    await props.onUpdate(props.keyRecord.id, {
-      name: name.trim() || undefined,
-      maxBudget: parseNumberOrUndefined(maxBudget),
-      rpmLimit: parseNumberOrUndefined(rpmLimit),
-      tpmLimit: parseNumberOrUndefined(tpmLimit),
-      modelsAllowed: modelsAllowed
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    });
-  }
-
-  return (
-    <div className="rounded-lg border border-border bg-card transition-colors">
-      {/* Summary row — always visible */}
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors rounded-lg"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <Key className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{props.keyRecord.name || "Unnamed Key"}</span>
-              <span className="mono text-xs text-muted-foreground">{props.keyRecord.keyHashPrefix}</span>
-            </div>
-            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-              <span>Spend: {toCurrency(props.keyRecord.spendTotal)}</span>
-              {props.keyRecord.maxBudget != null && (
-                <span>Budget: {toCurrency(props.keyRecord.maxBudget)}</span>
-              )}
-              <span>Created {toDateTime(props.keyRecord.createdAt)}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <StatusPill
-            label={props.keyRecord.revoked ? "revoked" : "active"}
-            tone={props.keyRecord.revoked ? "warn" : "good"}
-          />
-          <svg
-            className={cn("h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {/* Expanded edit area */}
-      {expanded && (
-        <div className="border-t border-border px-4 py-4 space-y-3">
-          <div className="grid gap-2 md:grid-cols-2">
-            <TextInput label="Name" value={name} onChange={setName} placeholder="Production API" />
-            <TextInput label="Models (comma-separated)" value={modelsAllowed} onChange={setModelsAllowed} placeholder="gpt-4o-mini, claude-3-5" />
-          </div>
-
-          <div className="grid gap-2 md:grid-cols-3">
-            <TextInput label="Max budget (USD)" value={maxBudget} onChange={setMaxBudget} />
-            <TextInput label="RPM limit" value={rpmLimit} onChange={setRpmLimit} />
-            <TextInput label="TPM limit" value={tpmLimit} onChange={setTpmLimit} />
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button variant="default" size="sm" onClick={save}>
-              Save
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => props.onRotate(props.keyRecord.id)}>
-              <RotateCw className="h-3.5 w-3.5 mr-1" />
-              Rotate
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => props.onRevoke(props.keyRecord.id)}>
-              Revoke
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /*  Tab Panels                                                                 */
 /* -------------------------------------------------------------------------- */
-
-function VirtualKeysTab(props: {
-  project: Project;
-  state: SettingsState;
-  busy: boolean;
-  setBusy: (v: boolean) => void;
-  latestPlainKey: string | null;
-  setLatestPlainKey: (v: string | null) => void;
-  createKeyName: string;
-  setCreateKeyName: (v: string) => void;
-  createKeyModelInput: string;
-  setCreateKeyModelInput: (v: string) => void;
-  createKeyBudget: string;
-  setCreateKeyBudget: (v: string) => void;
-  createKeyRpm: string;
-  setCreateKeyRpm: (v: string) => void;
-  createKeyTpm: string;
-  setCreateKeyTpm: (v: string) => void;
-  createKey: (e: FormEvent<HTMLFormElement>) => void;
-  revokeKey: (id: string) => Promise<void>;
-  rotateKey: (id: string) => Promise<void>;
-  updateKey: (id: string, patch: { name?: string; maxBudget?: number; rpmLimit?: number; tpmLimit?: number; modelsAllowed?: string[] }) => Promise<void>;
-  totalBudget: number;
-  copyToClipboard: (text: string) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      {/* Budget summary bar */}
-      <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
-          <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div>
-          <p className="text-sm font-medium">Total configured budget</p>
-          <p className="text-lg font-semibold tabular-nums">{toCurrency(props.totalBudget)}</p>
-        </div>
-        <div className="ml-auto text-right">
-          <p className="text-xs text-muted-foreground">{props.state.keys.length} key{props.state.keys.length !== 1 ? "s" : ""}</p>
-          <p className="text-xs text-muted-foreground">{props.state.keys.filter(k => !k.revoked).length} active</p>
-        </div>
-      </div>
-
-      {/* Created key banner */}
-      {props.latestPlainKey && (
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Key className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <p className="text-sm font-semibold">Virtual Key Created Successfully!</p>
-          </div>
-          <p className="text-xs text-muted-foreground">Save this key now — it will not be shown again.</p>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={props.latestPlainKey}
-              className="mono flex-1 rounded-md bg-secondary px-3 py-1.5 text-xs border border-border"
-            />
-            <Button variant="outline" size="sm" onClick={() => props.copyToClipboard(props.latestPlainKey!)}>
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <pre className="rounded-md bg-secondary px-3 py-1.5 text-xs overflow-x-auto border border-border">
-            <code>export OPENAI_API_KEY={props.latestPlainKey}</code>
-          </pre>
-          <Button variant="secondary" size="sm" onClick={() => props.setLatestPlainKey(null)}>
-            Dismiss
-          </Button>
-        </div>
-      )}
-
-      {/* Create new key form */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Create Virtual Key</h3>
-        </div>
-        <form onSubmit={props.createKey} className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <TextInput label="Name (optional)" value={props.createKeyName} onChange={props.setCreateKeyName} placeholder="e.g., Production API, Staging Key" />
-            <TextInput label="Models (comma-separated)" value={props.createKeyModelInput} onChange={props.setCreateKeyModelInput} placeholder="gpt-4o-mini, claude-3-5" />
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <TextInput label="Max budget (USD)" value={props.createKeyBudget} onChange={props.setCreateKeyBudget} />
-            <TextInput label="RPM limit" value={props.createKeyRpm} onChange={props.setCreateKeyRpm} />
-            <TextInput label="TPM limit" value={props.createKeyTpm} onChange={props.setCreateKeyTpm} />
-          </div>
-          <div className="flex justify-end pt-1">
-            <Button type="submit" disabled={props.busy} size="sm">
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Create key
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      {/* Key list */}
-      <div>
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-          Existing keys ({props.state.keys.length})
-        </h3>
-        {props.state.keys.length > 0 ? (
-          <div className="space-y-2">
-            {props.state.keys.map((keyRecord) => (
-              <KeyRow
-                key={keyRecord.id}
-                keyRecord={keyRecord}
-                onRevoke={props.revokeKey}
-                onRotate={props.rotateKey}
-                onUpdate={props.updateKey}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border py-8 text-center">
-            <Key className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-2 text-sm text-muted-foreground">No virtual keys yet. Create one above.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function APIKeysTab(props: {
   project: Project;
@@ -634,15 +399,9 @@ function DangerZoneTab(props: {
 
 function SettingsContent(props: { project: Project }) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("Virtual Keys");
-  const [state, setState] = useState<SettingsState>({ loading: true, keys: [], platformKeys: [], user: null, error: null });
+  const [activeTab, setActiveTab] = useState<SettingsTab>("API Keys");
+  const [state, setState] = useState<SettingsState>({ loading: true, platformKeys: [], user: null, error: null });
   const [alertConfig, setAlertConfig, alertValidationError, alertLoading] = useAlertConfig(props.project.id);
-  const [createKeyName, setCreateKeyName] = useState("Production API");
-  const [createKeyModelInput, setCreateKeyModelInput] = useState("");
-  const [createKeyBudget, setCreateKeyBudget] = useState("");
-  const [createKeyRpm, setCreateKeyRpm] = useState("");
-  const [createKeyTpm, setCreateKeyTpm] = useState("");
-  const [latestPlainKey, setLatestPlainKey] = useState<string | null>(null);
   const [platformKeyName, setPlatformKeyName] = useState("My CLI Key");
   const [createdPlatformKey, setCreatedPlatformKey] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -652,87 +411,21 @@ function SettingsContent(props: { project: Project }) {
 
   async function load() {
     try {
-      const [keys, platformKeys, me] = await Promise.all([
-        api.llmKeys.list({ projectId: props.project.id }),
+      const [platformKeys, me] = await Promise.all([
         api.platformKeys.list({ projectId: props.project.id }),
         api.dashboard.me()
       ]);
 
-      setState({ loading: false, keys: keys.keys, platformKeys: platformKeys.keys, user: me, error: null });
+      setState({ loading: false, platformKeys: platformKeys.keys, user: me, error: null });
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Unable to load settings";
-      setState({ loading: false, keys: [], platformKeys: [], user: null, error: message });
+      setState({ loading: false, platformKeys: [], user: null, error: message });
     }
   }
 
   useEffect(() => {
     void load();
   }, [props.project.id]);
-
-  const totalBudget = useMemo(
-    () => state.keys.reduce((sum, key) => sum + Number(key.maxBudget ?? 0), 0),
-    [state.keys]
-  );
-
-  async function createKey(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-
-    try {
-      const result = await api.llmKeys.create({
-        projectId: props.project.id,
-        name: createKeyName.trim() || undefined,
-        modelsAllowed: createKeyModelInput.split(",").map((value) => value.trim()).filter(Boolean),
-        maxBudget: parseNumberOrUndefined(createKeyBudget),
-        rpmLimit: parseNumberOrUndefined(createKeyRpm),
-        tpmLimit: parseNumberOrUndefined(createKeyTpm)
-      });
-
-      setLatestPlainKey(result.key);
-      setCreateKeyName("");
-      setCreateKeyModelInput("");
-      setCreateKeyBudget("");
-      setCreateKeyRpm("");
-      setCreateKeyTpm("");
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function revokeKey(keyId: string) {
-    setBusy(true);
-    try {
-      await api.llmKeys.revoke(keyId);
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function rotateKey(keyId: string) {
-    setBusy(true);
-    try {
-      const response = await api.llmKeys.rotate(keyId);
-      setLatestPlainKey(response.key);
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updateKey(
-    keyId: string,
-    patch: { maxBudget?: number; rpmLimit?: number; tpmLimit?: number; modelsAllowed?: string[] }
-  ) {
-    setBusy(true);
-    try {
-      await api.llmKeys.update(keyId, patch);
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function createPlatformKey(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -836,33 +529,6 @@ function SettingsContent(props: { project: Project }) {
 
       {/* Tab content */}
       <div>
-        {activeTab === "Virtual Keys" && (
-          <VirtualKeysTab
-            project={props.project}
-            state={state}
-            busy={busy}
-            setBusy={setBusy}
-            latestPlainKey={latestPlainKey}
-            setLatestPlainKey={setLatestPlainKey}
-            createKeyName={createKeyName}
-            setCreateKeyName={setCreateKeyName}
-            createKeyModelInput={createKeyModelInput}
-            setCreateKeyModelInput={setCreateKeyModelInput}
-            createKeyBudget={createKeyBudget}
-            setCreateKeyBudget={setCreateKeyBudget}
-            createKeyRpm={createKeyRpm}
-            setCreateKeyRpm={setCreateKeyRpm}
-            createKeyTpm={createKeyTpm}
-            setCreateKeyTpm={setCreateKeyTpm}
-            createKey={createKey}
-            revokeKey={revokeKey}
-            rotateKey={rotateKey}
-            updateKey={updateKey}
-            totalBudget={totalBudget}
-            copyToClipboard={copyToClipboard}
-          />
-        )}
-
         {activeTab === "API Keys" && (
           <APIKeysTab
             project={props.project}

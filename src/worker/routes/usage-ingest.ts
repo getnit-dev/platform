@@ -2,14 +2,6 @@ import { Hono, type Context } from "hono";
 import { normalizeUsageEventsPayload } from "../lib/usage-events";
 import type { AppEnv } from "../types";
 
-interface VirtualKeyAuthRow {
-  keyHash: string;
-  userId: string;
-  projectId: string | null;
-  revoked: number;
-  expiresAt: string | null;
-}
-
 interface AuthContext {
   mode: "ingest-token" | "api-key";
   userId?: string;
@@ -56,15 +48,6 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function isExpired(expiresAt: string | null | undefined): boolean {
-  if (!expiresAt) {
-    return false;
-  }
-
-  const timestamp = Date.parse(expiresAt);
-  return Number.isFinite(timestamp) && timestamp <= Date.now();
-}
-
 async function resolveAuthContext(
   c: Context<AppEnv>,
   providedToken: string | null
@@ -78,32 +61,18 @@ async function resolveAuthContext(
     return { mode: "ingest-token" };
   }
 
+  // Check platform_api_keys table
   const keyHash = await sha256Hex(providedToken);
   const row = await c.env.DB.prepare(
-    `
-      SELECT
-        key_hash AS keyHash,
-        user_id AS userId,
-        project_id AS projectId,
-        revoked AS revoked,
-        expires_at AS expiresAt
-      FROM virtual_keys
-      WHERE key_hash = ? OR key_hash = ?
-      LIMIT 1
-    `
+    `SELECT key_hash AS keyHash, user_id AS userId, project_id AS projectId
+     FROM platform_api_keys
+     WHERE key_hash = ? AND revoked = 0
+     LIMIT 1`
   )
-    .bind(keyHash, providedToken)
-    .first<VirtualKeyAuthRow>();
+    .bind(keyHash)
+    .first<{ keyHash: string; userId: string; projectId: string | null }>();
 
-  if (!row || !row.userId || !row.keyHash) {
-    return null;
-  }
-
-  if (Number(row.revoked ?? 0) !== 0) {
-    return null;
-  }
-
-  if (isExpired(row.expiresAt)) {
+  if (!row || !row.userId) {
     return null;
   }
 

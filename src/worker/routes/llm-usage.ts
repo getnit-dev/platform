@@ -51,9 +51,7 @@ llmUsageRoutes.get("/summary", async (c) => {
     SELECT
       COUNT(*) AS totalRequests,
       SUM(prompt_tokens + completion_tokens) AS totalTokens,
-      SUM(cost_usd) AS providerCostUsd,
-      SUM(margin_usd) AS marginUsd,
-      SUM(cost_usd + margin_usd) AS totalCostUsd
+      SUM(cost_usd) AS totalCostUsd
     FROM usage_events
     WHERE user_id = ?
       AND timestamp >= datetime('now', ?)
@@ -68,8 +66,6 @@ llmUsageRoutes.get("/summary", async (c) => {
   const summary = await c.env.DB.prepare(sql).bind(...binds).first<{
     totalRequests: number | null;
     totalTokens: number | null;
-    providerCostUsd: number | null;
-    marginUsd: number | null;
     totalCostUsd: number | null;
   }>();
 
@@ -77,8 +73,6 @@ llmUsageRoutes.get("/summary", async (c) => {
     summary: {
       totalRequests: Number(summary?.totalRequests ?? 0),
       totalTokens: Number(summary?.totalTokens ?? 0),
-      providerCostUsd: Number(summary?.providerCostUsd ?? 0),
-      marginUsd: Number(summary?.marginUsd ?? 0),
       totalCostUsd: Number(summary?.totalCostUsd ?? 0)
     }
   });
@@ -145,9 +139,7 @@ llmUsageRoutes.get("/breakdown", async (c) => {
       model,
       COUNT(*) AS requests,
       SUM(prompt_tokens + completion_tokens) AS tokens,
-      SUM(cost_usd) AS providerCostUsd,
-      SUM(margin_usd) AS marginUsd,
-      SUM(cost_usd + margin_usd) AS totalCostUsd
+      SUM(cost_usd) AS totalCostUsd
     FROM usage_events
     WHERE user_id = ?
       AND timestamp >= datetime('now', ?)
@@ -166,73 +158,8 @@ llmUsageRoutes.get("/breakdown", async (c) => {
     model: string;
     requests: number;
     tokens: number;
-    providerCostUsd: number;
-    marginUsd: number;
     totalCostUsd: number;
   }>();
 
   return c.json({ breakdown: rows.results });
-});
-
-llmUsageRoutes.get("/keys", async (c) => {
-  const userId = getSessionUserId(c);
-  if (!userId) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  const projectId = asNonEmptyString(c.req.query("projectId"));
-  if (!(await assertProjectAccess(c, userId, projectId))) {
-    return c.json({ error: "Project access denied" }, 403);
-  }
-
-  const days = parseDays(c.req.query("days"), 30);
-
-  let sql = `
-    SELECT
-      ue.key_hash AS keyHash,
-      COUNT(*) AS requests,
-      SUM(ue.prompt_tokens + ue.completion_tokens) AS tokens,
-      SUM(ue.cost_usd + ue.margin_usd) AS totalCostUsd,
-      MAX(ue.timestamp) AS lastSeenAt,
-      vk.max_budget AS maxBudget,
-      vk.spend_total AS spendTotal,
-      vk.revoked AS revoked
-    FROM usage_events ue
-    LEFT JOIN virtual_keys vk ON vk.key_hash = ue.key_hash
-    WHERE ue.user_id = ?
-      AND ue.timestamp >= datetime('now', ?)
-  `;
-  const binds: Array<string> = [userId, `-${days} days`];
-
-  if (projectId) {
-    sql += " AND ue.project_id = ?";
-    binds.push(projectId);
-  }
-
-  sql += " GROUP BY ue.key_hash ORDER BY totalCostUsd DESC";
-
-  const rows = await c.env.DB.prepare(sql).bind(...binds).all<{
-    keyHash: string | null;
-    requests: number;
-    tokens: number;
-    totalCostUsd: number;
-    lastSeenAt: string | null;
-    maxBudget: number | null;
-    spendTotal: number | null;
-    revoked: number | null;
-  }>();
-
-  return c.json({
-    keys: rows.results.map((row) => ({
-      keyHash: row.keyHash,
-      keyHashPrefix: row.keyHash ? row.keyHash.slice(0, 12) : null,
-      requests: Number(row.requests ?? 0),
-      tokens: Number(row.tokens ?? 0),
-      totalCostUsd: Number(row.totalCostUsd ?? 0),
-      lastSeenAt: row.lastSeenAt,
-      maxBudget: row.maxBudget,
-      spendTotal: row.spendTotal,
-      revoked: Number(row.revoked ?? 0) !== 0
-    }))
-  });
 });

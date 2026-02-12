@@ -43,7 +43,7 @@ function parseBoolean(value: unknown): boolean {
 }
 
 function coerceSource(value: unknown, fallback: UsageSource): UsageSource {
-  if (value === "api" || value === "platform" || value === "byok" || value === "cli") {
+  if (value === "byok" || value === "cli") {
     return value;
   }
 
@@ -102,7 +102,6 @@ export function normalizeUsageEvent(
   const promptTokens = Math.max(0, Math.floor(parseFiniteNumber(input.promptTokens) ?? 0));
   const completionTokens = Math.max(0, Math.floor(parseFiniteNumber(input.completionTokens) ?? 0));
   const costUsd = Math.max(0, parseFiniteNumber(input.costUsd) ?? 0);
-  const marginUsd = Math.max(0, parseFiniteNumber(input.marginUsd) ?? 0);
 
   return {
     userId,
@@ -113,7 +112,6 @@ export function normalizeUsageEvent(
     promptTokens,
     completionTokens,
     costUsd,
-    marginUsd,
     cacheHit: parseBoolean(input.cacheHit),
     source: coerceSource(input.source, fallbackSource),
     timestamp: coerceTimestamp(input.timestamp)

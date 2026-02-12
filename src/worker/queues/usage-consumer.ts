@@ -30,7 +30,7 @@ function buildInsertStatement(env: Pick<AppBindings, "DB">, event: UsageEvent): 
     event.promptTokens,
     event.completionTokens,
     event.costUsd,
-    event.marginUsd,
+    0,
     event.cacheHit ? 1 : 0,
     event.source,
     event.timestamp

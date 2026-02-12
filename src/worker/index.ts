@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { checkAlerts } from "./lib/alerting";
 import { handleAuthRequest } from "./lib/auth";
-import { resetVirtualKeyBudgets } from "./lib/budget";
 import { aggregateDriftDaily, cleanupDriftData } from "./lib/drift-rollup";
 import { wrapWithSentry } from "./lib/sentry";
 import { aggregateUsageDaily, cleanupUsageData } from "./lib/usage-rollup";
@@ -13,8 +12,6 @@ import { sentryMiddleware } from "./middleware/sentry";
 import alertConfigRoutes from "./routes/alert-config";
 import { bugRoutes } from "./routes/bugs";
 import { driftRoutes } from "./routes/drift";
-import { llmKeyRoutes } from "./routes/llm-keys";
-import { llmProxyRoutes } from "./routes/llm-proxy";
 import { llmUsageRoutes } from "./routes/llm-usage";
 import { platformKeyRoutes } from "./routes/platform-keys";
 import { projectRoutes } from "./routes/projects";
@@ -42,7 +39,6 @@ app.all("/api/auth/*", (c) => {
 // Session-only auth for dashboard-only routes
 for (const path of [
   "/api/projects",
-  "/api/llm-keys",
   "/api/llm-usage",
   "/api/alert-config",
   "/api/platform-keys"
@@ -71,7 +67,6 @@ app.get("/api/dashboard/me", authMiddleware, (c) => {
   });
 });
 
-app.route("/api/v1/llm-proxy", llmProxyRoutes);
 app.route("/api/v1/usage", usageIngestRoutes);
 app.route("/api/v1/reports", reportRoutes);
 app.route("/api/v1/drift", driftRoutes);
@@ -80,7 +75,6 @@ app.route("/api/v1/memory", memoryRoutes);
 app.route("/api/v1/upload", uploadRoutes);
 app.route("/api/projects", projectRoutes);
 app.route("/api/webhooks", webhookRoutes);
-app.route("/api/llm-keys", llmKeyRoutes);
 app.route("/api/llm-usage", llmUsageRoutes);
 app.route("/api/alert-config", alertConfigRoutes);
 app.route("/api/platform-keys", platformKeyRoutes);
@@ -111,11 +105,6 @@ const worker: ExportedHandler<AppBindings> = {
     Sentry.metrics.count("cron.execution", 1);
     await aggregateUsageDaily({ DB: env.DB });
     await aggregateDriftDaily({ DB: env.DB, KV: env.KV });
-
-    await resetVirtualKeyBudgets({
-      DB: env.DB,
-      KV: env.KV
-    });
 
     await cleanupUsageData({
       DB: env.DB,

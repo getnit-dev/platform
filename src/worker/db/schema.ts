@@ -192,27 +192,6 @@ export const bugs = sqliteTable("bugs", {
   bugsProjectStatusIndex: index("idx_bugs_project").on(table.projectId, table.status)
 }));
 
-export const virtualKeys = sqliteTable("virtual_keys", {
-  id: text("id").primaryKey(),
-  keyHash: text("key_hash").notNull(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
-  modelsAllowed: text("models_allowed"),
-  maxBudget: real("max_budget"),
-  budgetDuration: text("budget_duration"),
-  rpmLimit: integer("rpm_limit"),
-  tpmLimit: integer("tpm_limit"),
-  spendTotal: real("spend_total").notNull().default(0),
-  createdAt: text("created_at").notNull().default(now),
-  expiresAt: text("expires_at"),
-  revoked: integer("revoked", { mode: "boolean" }).notNull().default(false)
-}, (table) => ({
-  virtualKeysHashIndex: index("idx_virtual_keys_hash").on(table.keyHash),
-  virtualKeysHashUnique: uniqueIndex("uq_virtual_keys_hash").on(table.keyHash)
-}));
-
 export const usageEvents = sqliteTable("usage_events", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -356,7 +335,6 @@ export const schema = {
   coverageReports,
   driftResults,
   bugs,
-  virtualKeys,
   usageEvents,
   usageDaily,
   alertConfigs,
