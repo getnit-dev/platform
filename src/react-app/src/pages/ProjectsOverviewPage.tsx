@@ -493,7 +493,7 @@ jobs:
 
       - uses: getnit-dev/nit@v1
         with:
-          mode: hunt
+          mode: pick
           llm_provider: anthropic
           llm_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
           upload_report: true
@@ -504,7 +504,7 @@ jobs:
 
                 <SetupStep number={4} title="Generate tests and see results here">
                   <pre className="bg-secondary p-3 rounded-lg text-sm overflow-x-auto border border-border">
-                    <code className="text-primary">nit hunt --report</code>
+                    <code className="text-primary">nit pick --report</code>
                   </pre>
                   <p className="text-xs text-muted-foreground">
                     Your projects will appear on this dashboard once the first report is uploaded.

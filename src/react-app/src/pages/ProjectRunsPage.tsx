@@ -114,7 +114,7 @@ function coverageTrackColor(pct: number): string {
 
 function modeBadgeVariant(mode: string): "default" | "secondary" | "destructive" | "outline" | "success" | "warning" {
   const m = mode.toLowerCase();
-  if (m === "hunt") return "destructive";
+  if (m === "pick") return "destructive";
   if (m === "watch") return "default";
   return "secondary";
 }

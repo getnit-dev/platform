@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { EmptyState, Panel } from "../components/ui";
 import { api, ApiError, type CoverageReport, type MemoryApiResponse, type Project } from "../lib/api";
