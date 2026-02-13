@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
 import { EmptyState, Panel, StatusPill } from "../components/ui";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { api, ApiError, type Bug, type CoverageReport, type Project } from "../lib/api";
-import { toNumber, toPercentNumber, truncate } from "../lib/format";
-import { cn } from "../lib/utils";
+import { toNumber, truncate } from "../lib/format";
 import {
   Plus,
   GitBranch,
@@ -17,7 +15,6 @@ import {
   GitPullRequest,
   Zap,
   X,
-  ArrowRight,
   Folder,
 } from "lucide-react";
 
@@ -57,20 +54,6 @@ function lastReportByProject(reports: CoverageReport[]): Map<string, CoverageRep
   return map;
 }
 
-function reportTrendForProject(
-  reports: CoverageReport[],
-  projectId: string,
-): Array<{ date: string; coverage: number }> {
-  return reports
-    .filter((r) => r.projectId === projectId && r.overallCoverage !== null)
-    .slice(0, 12)
-    .reverse()
-    .map((r) => ({
-      date: r.createdAt.slice(0, 10),
-      coverage: toPercentNumber(r.overallCoverage),
-    }));
-}
-
 function healthStatus(
   report: CoverageReport | undefined,
   openBugs: number,
@@ -78,92 +61,23 @@ function healthStatus(
   if (!report) return { label: "No runs", tone: "neutral" };
   if (report.testsFailed > 0 || openBugs > 0)
     return { label: report.testsFailed > 0 ? "Needs attention" : "Open bugs", tone: "warn" };
-  if ((report.overallCoverage ?? 0) < 0.7) return { label: "Low coverage", tone: "danger" };
   return { label: "Healthy", tone: "good" };
 }
-
-function coverageColor(pct: number): {
-  bar: string;
-  text: string;
-  bg: string;
-  stroke: string;
-} {
-  if (pct >= 85)
-    return {
-      bar: "bg-emerald-500",
-      text: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10",
-      stroke: "hsl(160, 84%, 39%)",
-    };
-  if (pct >= 70)
-    return {
-      bar: "bg-amber-500",
-      text: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-500/10",
-      stroke: "hsl(38, 92%, 50%)",
-    };
-  return {
-    bar: "bg-rose-500",
-    text: "text-red-600 dark:text-red-400",
-    bg: "bg-red-500/10",
-    stroke: "hsl(0, 84%, 60%)",
-  };
-}
-
-import { TOOLTIP_STYLE } from "../lib/chart-styles";
 
 /* -------------------------------------------------------------------------- */
 /*  Sub-components                                                            */
 /* -------------------------------------------------------------------------- */
 
-function CoverageBar({ pct }: { pct: number }) {
-  const colors = coverageColor(pct);
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="relative h-2 flex-1 rounded-full bg-muted overflow-hidden">
-        <div
-          className={cn("absolute inset-y-0 left-0 rounded-full transition-all duration-500", colors.bar)}
-          style={{ width: `${Math.min(100, pct)}%` }}
-        />
-      </div>
-      <span className={cn("text-xs font-semibold tabular-nums w-11 text-right", colors.text)}>
-        {pct.toFixed(1)}%
-      </span>
-    </div>
-  );
-}
-
-function MiniStat({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-1 text-xs text-muted-foreground" title={label}>
-      {icon}
-      <span className="font-medium tabular-nums text-foreground">{value}</span>
-    </div>
-  );
-}
-
 function ProjectCard({
   project,
   latestReport,
-  trendData,
   openBugs,
 }: {
   project: Project;
   latestReport: CoverageReport | undefined;
-  trendData: Array<{ date: string; coverage: number }>;
   openBugs: number;
 }) {
   const status = healthStatus(latestReport, openBugs);
-  const coveragePct = latestReport ? toPercentNumber(latestReport.overallCoverage) : null;
-  const colors = coveragePct !== null ? coverageColor(coveragePct) : null;
 
   return (
     <Link
@@ -192,76 +106,33 @@ function ProjectCard({
           <StatusPill label={status.label} tone={status.tone} />
         </div>
 
-        {/* Coverage bar */}
-        {coveragePct !== null ? (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Coverage</span>
-            </div>
-            <CoverageBar pct={coveragePct} />
+        {/* Stats */}
+        <div className="grid grid-cols-5 gap-2 border-t border-border pt-3">
+          <div className="flex flex-col items-center gap-1">
+            <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium tabular-nums">{toNumber(project.totalRuns ?? 0)}</span>
+            <span className="text-[10px] text-muted-foreground">Runs</span>
           </div>
-        ) : (
-          <div className="space-y-1.5">
-            <span className="text-xs text-muted-foreground">Coverage</span>
-            <div className="h-2 rounded-full bg-muted" />
-            <p className="text-xs text-muted-foreground/60 italic">No data yet</p>
+          <div className="flex flex-col items-center gap-1">
+            <BugIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium tabular-nums">{toNumber(project.detectedBugs ?? 0)}</span>
+            <span className="text-[10px] text-muted-foreground">Bugs</span>
           </div>
-        )}
-
-        {/* Sparkline */}
-        <div className="h-10 rounded-lg bg-muted/40 overflow-hidden">
-          {trendData.length >= 2 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <Tooltip
-                  contentStyle={TOOLTIP_STYLE}
-                  formatter={(value) => [`${Number(value).toFixed(1)}%`, "Coverage"]}
-                  labelFormatter={() => ""}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="coverage"
-                  stroke={colors?.stroke ?? "hsl(var(--primary))"}
-                  strokeWidth={1.5}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground/50">
-              {trendData.length === 1 ? "1 data point" : "No trend data"}
-            </div>
-          )}
-        </div>
-
-        {/* Compact inline stats */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border pt-3">
-          <MiniStat
-            icon={<Activity className="h-3 w-3" />}
-            value={toNumber(project.totalRuns ?? 0)}
-            label="Runs"
-          />
-          <MiniStat
-            icon={<BugIcon className="h-3 w-3" />}
-            value={toNumber(project.detectedBugs ?? 0)}
-            label="Bugs"
-          />
-          <MiniStat
-            icon={<FlaskConical className="h-3 w-3" />}
-            value={toNumber(project.createdIssues ?? 0)}
-            label="Issues"
-          />
-          <MiniStat
-            icon={<GitPullRequest className="h-3 w-3" />}
-            value={toNumber(project.createdPRs ?? 0)}
-            label="PRs"
-          />
-          <MiniStat
-            icon={<Zap className="h-3 w-3" />}
-            value={toNumber(project.totalTokens ?? 0)}
-            label="Tokens"
-          />
-          <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+          <div className="flex flex-col items-center gap-1">
+            <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium tabular-nums">{toNumber(project.createdIssues ?? 0)}</span>
+            <span className="text-[10px] text-muted-foreground">Issues</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium tabular-nums">{toNumber(project.createdPRs ?? 0)}</span>
+            <span className="text-[10px] text-muted-foreground">PRs</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium tabular-nums">{toNumber(project.totalTokens ?? 0)}</span>
+            <span className="text-[10px] text-muted-foreground">Tokens</span>
+          </div>
         </div>
       </div>
     </Link>
@@ -704,11 +575,13 @@ export function ProjectsOverviewPage() {
                 <div className="h-8 w-8 rounded-lg bg-muted animate-pulse" />
                 <div className="h-4 w-32 rounded-md bg-muted animate-pulse" />
               </div>
-              <div className="h-2 rounded-full bg-muted animate-pulse" />
-              <div className="h-10 rounded-lg bg-muted animate-pulse" />
-              <div className="flex gap-3 pt-3 border-t border-border">
-                {Array.from({ length: 4 }).map((_, j) => (
-                  <div key={j} className="h-3 w-10 rounded bg-muted animate-pulse" />
+              <div className="grid grid-cols-5 gap-2 pt-3 border-t border-border">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div key={j} className="flex flex-col items-center gap-1">
+                    <div className="h-3.5 w-3.5 rounded bg-muted animate-pulse" />
+                    <div className="h-4 w-6 rounded bg-muted animate-pulse" />
+                    <div className="h-2.5 w-8 rounded bg-muted animate-pulse" />
+                  </div>
                 ))}
               </div>
             </div>
@@ -748,7 +621,6 @@ export function ProjectsOverviewPage() {
           <SummaryBar projects={state.projects} />
         </div>
         <Button
-          size="sm"
           onClick={() =>
             setCreateProject({
               open: true,
@@ -759,6 +631,7 @@ export function ProjectsOverviewPage() {
               createdProject: null,
             })
           }
+          className="bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
         >
           <Plus className="h-4 w-4 mr-1.5" />
           New Project
@@ -769,7 +642,6 @@ export function ProjectsOverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {state.projects.map((project) => {
           const latest = latestByProject.get(project.id);
-          const trendData = reportTrendForProject(state.reports, project.id);
           const openBugs = openBugCounts.get(project.id) ?? 0;
 
           return (
@@ -777,7 +649,6 @@ export function ProjectsOverviewPage() {
               key={project.id}
               project={project}
               latestReport={latest}
-              trendData={trendData}
               openBugs={openBugs}
             />
           );
