@@ -1,31 +1,13 @@
 import type { AppBindings } from "../types";
-
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-
-  return Math.floor(parsed);
-}
+import { parsePositiveInt } from "./validation";
 
 export async function aggregateUsageDaily(env: Pick<AppBindings, "DB">): Promise<void> {
   const now = new Date();
   const end = now.toISOString();
-  const endDate = end.slice(0, 10);
 
   const startDate = new Date(now);
   startDate.setUTCDate(startDate.getUTCDate() - 2);
   const start = startDate.toISOString();
-  const startDay = start.slice(0, 10);
-
-  await env.DB.prepare("DELETE FROM usage_daily WHERE date >= ? AND date <= ?")
-    .bind(startDay, endDate)
-    .run();
 
   await env.DB.prepare(
     `
@@ -55,6 +37,11 @@ export async function aggregateUsageDaily(env: Pick<AppBindings, "DB">): Promise
       FROM usage_events
       WHERE timestamp >= ? AND timestamp <= ?
       GROUP BY user_id, project_id, model, substr(timestamp, 1, 10)
+      ON CONFLICT (user_id, project_id, model, date) DO UPDATE SET
+        total_requests = excluded.total_requests,
+        total_tokens = excluded.total_tokens,
+        total_cost_usd = excluded.total_cost_usd,
+        updated_at = datetime('now')
     `
   )
     .bind(start, end)
@@ -66,14 +53,14 @@ export async function cleanupUsageData(env: Pick<AppBindings, "DB" | "USAGE_EVEN
   const dailyRetentionDays = parsePositiveInt(env.USAGE_DAILY_RETENTION_DAYS, 730);
 
   await env.DB.prepare(
-    "DELETE FROM usage_events WHERE julianday(timestamp) < julianday('now') - ?"
+    "DELETE FROM usage_events WHERE timestamp < datetime('now', ?)"
   )
-    .bind(eventRetentionDays)
+    .bind(`-${eventRetentionDays} days`)
     .run();
 
   await env.DB.prepare(
-    "DELETE FROM usage_daily WHERE julianday(date) < julianday('now') - ?"
+    "DELETE FROM usage_daily WHERE date < date('now', ?)"
   )
-    .bind(dailyRetentionDays)
+    .bind(`-${dailyRetentionDays} days`)
     .run();
 }

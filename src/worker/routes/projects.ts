@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getRequestActor } from "../lib/access";
+import { asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface ProjectRow {
@@ -17,14 +18,6 @@ interface ProjectRow {
   createdPRs?: number;
   totalCommits?: number;
   totalTokens?: number;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 export const projectRoutes = new Hono<AppEnv>();
@@ -61,6 +54,7 @@ projectRoutes.get("/", async (c) => {
           SUM(COALESCE(llm_total_tokens, 0)) AS totalTokens
         FROM coverage_reports
         WHERE commit_sha IS NOT NULL
+          AND project_id IN (SELECT id FROM projects WHERE user_id = ?)
         GROUP BY project_id
       ) r ON p.id = r.project_id
       LEFT JOIN (
@@ -70,13 +64,14 @@ projectRoutes.get("/", async (c) => {
           COUNT(CASE WHEN github_issue_url IS NOT NULL THEN 1 END) AS createdIssues,
           COUNT(CASE WHEN github_pr_url IS NOT NULL THEN 1 END) AS createdPRs
         FROM bugs
+        WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)
         GROUP BY project_id
       ) b ON p.id = b.project_id
       WHERE p.user_id = ?
       ORDER BY p.created_at DESC
     `
   )
-    .bind(actor.userId)
+    .bind(actor.userId, actor.userId, actor.userId)
     .all<ProjectRow>();
 
   return c.json({ projects: rows.results });
@@ -166,6 +161,7 @@ projectRoutes.get("/:projectId", async (c) => {
           SUM(COALESCE(llm_total_tokens, 0)) AS totalTokens
         FROM coverage_reports
         WHERE commit_sha IS NOT NULL
+          AND project_id = ?
         GROUP BY project_id
       ) r ON p.id = r.project_id
       LEFT JOIN (
@@ -175,13 +171,14 @@ projectRoutes.get("/:projectId", async (c) => {
           COUNT(CASE WHEN github_issue_url IS NOT NULL THEN 1 END) AS createdIssues,
           COUNT(CASE WHEN github_pr_url IS NOT NULL THEN 1 END) AS createdPRs
         FROM bugs
+        WHERE project_id = ?
         GROUP BY project_id
       ) b ON p.id = b.project_id
       WHERE p.id = ? AND p.user_id = ?
       LIMIT 1
     `
   )
-    .bind(projectId, actor.userId)
+    .bind(projectId, projectId, projectId, actor.userId)
     .first<ProjectRow>();
 
   if (!row) {

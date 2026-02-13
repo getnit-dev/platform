@@ -231,6 +231,8 @@ export interface UsageSummary {
   totalRequests: number;
   totalTokens: number;
   totalCostUsd: number;
+  avgDurationMs: number | null;
+  maxDurationMs: number | null;
 }
 
 export interface UsageDailyPoint {
@@ -246,6 +248,13 @@ export interface UsageBreakdownRow {
   requests: number;
   tokens: number;
   totalCostUsd: number;
+  avgDurationMs: number | null;
+}
+
+export interface UsageLatencyPoint {
+  date: string;
+  avgDurationMs: number;
+  requestCount: number;
 }
 
 export interface UploadResult {
@@ -459,6 +468,11 @@ export const api = {
     breakdown: (query?: { projectId?: string; days?: number }) =>
       request<{ breakdown: UsageBreakdownRow[] }>("/api/llm-usage/breakdown", {
         query
+      }),
+
+    latency: (query?: { projectId?: string; days?: number }) =>
+      request<{ latency: UsageLatencyPoint[] }>("/api/llm-usage/latency", {
+        query
       })
   },
 
@@ -478,10 +492,12 @@ export const api = {
           id: string | null;
           projectId: string;
           slackWebhook: string | null;
+          slackWebhookConfigured: boolean;
           emailThresholdUsd: number | null;
           budgetAlertPercent: number | null;
           emailRecipients: string | null;
           resendApiKey: string | null;
+          resendApiKeyConfigured: boolean;
           emailFromAddress: string | null;
           createdAt: string | null;
           updatedAt: string | null;

@@ -1,10 +1,7 @@
 import { Hono, type Context } from "hono";
 import { userOwnsProject } from "../lib/access";
+import { asNonEmptyString } from "../lib/validation";
 import type { AppEnv } from "../types";
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
 
 function parseDays(value: string | undefined, fallback: number): number {
   const parsed = value ? Number(value) : NaN;
@@ -51,7 +48,9 @@ llmUsageRoutes.get("/summary", async (c) => {
     SELECT
       COUNT(*) AS totalRequests,
       SUM(prompt_tokens + completion_tokens) AS totalTokens,
-      SUM(cost_usd) AS totalCostUsd
+      SUM(cost_usd) AS totalCostUsd,
+      AVG(duration_ms) AS avgDurationMs,
+      MAX(duration_ms) AS maxDurationMs
     FROM usage_events
     WHERE user_id = ?
       AND timestamp >= datetime('now', ?)
@@ -67,13 +66,17 @@ llmUsageRoutes.get("/summary", async (c) => {
     totalRequests: number | null;
     totalTokens: number | null;
     totalCostUsd: number | null;
+    avgDurationMs: number | null;
+    maxDurationMs: number | null;
   }>();
 
   return c.json({
     summary: {
       totalRequests: Number(summary?.totalRequests ?? 0),
       totalTokens: Number(summary?.totalTokens ?? 0),
-      totalCostUsd: Number(summary?.totalCostUsd ?? 0)
+      totalCostUsd: Number(summary?.totalCostUsd ?? 0),
+      avgDurationMs: Math.round(Number(summary?.avgDurationMs ?? 0)),
+      maxDurationMs: Math.round(Number(summary?.maxDurationMs ?? 0))
     }
   });
 });
@@ -139,7 +142,8 @@ llmUsageRoutes.get("/breakdown", async (c) => {
       model,
       COUNT(*) AS requests,
       SUM(prompt_tokens + completion_tokens) AS tokens,
-      SUM(cost_usd) AS totalCostUsd
+      SUM(cost_usd) AS totalCostUsd,
+      AVG(duration_ms) AS avgDurationMs
     FROM usage_events
     WHERE user_id = ?
       AND timestamp >= datetime('now', ?)
@@ -159,7 +163,59 @@ llmUsageRoutes.get("/breakdown", async (c) => {
     requests: number;
     tokens: number;
     totalCostUsd: number;
+    avgDurationMs: number | null;
   }>();
 
-  return c.json({ breakdown: rows.results });
+  return c.json({
+    breakdown: rows.results.map((row) => ({
+      ...row,
+      avgDurationMs: Math.round(Number(row.avgDurationMs ?? 0))
+    }))
+  });
+});
+
+llmUsageRoutes.get("/latency", async (c) => {
+  const userId = getSessionUserId(c);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const projectId = asNonEmptyString(c.req.query("projectId"));
+  if (!(await assertProjectAccess(c, userId, projectId))) {
+    return c.json({ error: "Project access denied" }, 403);
+  }
+
+  const days = parseDays(c.req.query("days"), 30);
+
+  let sql = `
+    SELECT
+      substr(timestamp, 1, 10) AS date,
+      AVG(duration_ms) AS avgDurationMs,
+      COUNT(*) AS requestCount
+    FROM usage_events
+    WHERE user_id = ?
+      AND timestamp >= datetime('now', ?)
+      AND duration_ms IS NOT NULL
+  `;
+  const binds: Array<string> = [userId, `-${days} days`];
+
+  if (projectId) {
+    sql += " AND project_id = ?";
+    binds.push(projectId);
+  }
+
+  sql += " GROUP BY substr(timestamp, 1, 10) ORDER BY date ASC";
+
+  const rows = await c.env.DB.prepare(sql).bind(...binds).all<{
+    date: string;
+    avgDurationMs: number;
+    requestCount: number;
+  }>();
+
+  return c.json({
+    latency: rows.results.map((row) => ({
+      ...row,
+      avgDurationMs: Math.round(Number(row.avgDurationMs))
+    }))
+  });
 });

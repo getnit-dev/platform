@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { safeEqual, sha256Hex } from "../lib/crypto";
 import { normalizeUsageEventsPayload } from "../lib/usage-events";
 import type { AppEnv } from "../types";
 
@@ -22,32 +23,6 @@ function getPlatformIngestToken(request: Request): string | null {
   return headerToken?.trim() || null;
 }
 
-function safeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-
-  if (aBytes.length !== bBytes.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < aBytes.length; i += 1) {
-    result |= aBytes[i] ^ bBytes[i];
-  }
-
-  return result === 0;
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const encoded = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
-  const bytes = new Uint8Array(hashBuffer);
-
-  return Array.from(bytes)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 async function resolveAuthContext(
   c: Context<AppEnv>,
   providedToken: string | null
@@ -67,6 +42,7 @@ async function resolveAuthContext(
     `SELECT key_hash AS keyHash, user_id AS userId, project_id AS projectId
      FROM platform_api_keys
      WHERE key_hash = ? AND revoked = 0
+       AND (expires_at IS NULL OR expires_at > datetime('now'))
      LIMIT 1`
   )
     .bind(keyHash)
@@ -105,9 +81,9 @@ usageIngestRoutes.post("/", async (c) => {
     return c.json({ error: "No valid usage events in payload" }, 400);
   }
 
-  for (const event of events) {
-    await c.env.USAGE_EVENTS_QUEUE.send(event);
-  }
+  await c.env.USAGE_EVENTS_QUEUE.sendBatch(
+    events.map((event) => ({ body: event }))
+  );
 
   return c.json({ enqueued: events.length });
 });

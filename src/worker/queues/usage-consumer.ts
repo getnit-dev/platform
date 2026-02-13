@@ -14,11 +14,12 @@ function buildInsertStatement(env: Pick<AppBindings, "DB">, event: UsageEvent): 
         prompt_tokens,
         completion_tokens,
         cost_usd,
-        margin_usd,
         cache_hit,
         source,
-        timestamp
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        timestamp,
+        session_id,
+        duration_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   ).bind(
     crypto.randomUUID(),
@@ -30,10 +31,11 @@ function buildInsertStatement(env: Pick<AppBindings, "DB">, event: UsageEvent): 
     event.promptTokens,
     event.completionTokens,
     event.costUsd,
-    0,
     event.cacheHit ? 1 : 0,
     event.source,
-    event.timestamp
+    event.timestamp,
+    event.sessionId,
+    event.durationMs
   );
 }
 

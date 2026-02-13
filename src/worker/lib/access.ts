@@ -65,6 +65,12 @@ export async function resolveProjectForWrite(
       return null;
     }
 
+    // Verify the user actually owns this project even for API key access
+    const authorized = await userOwnsProject(c.env, actor.userId, projectId);
+    if (!authorized) {
+      return null;
+    }
+
     return { actor, projectId };
   }
 
@@ -93,7 +99,10 @@ export async function canAccessProject(
   }
 
   if (actor.mode === "api-key") {
-    return actor.projectId === null || actor.projectId === projectId;
+    if (actor.projectId !== null && actor.projectId !== projectId) {
+      return false;
+    }
+    return userOwnsProject(c.env, actor.userId, projectId);
   }
 
   return userOwnsProject(c.env, actor.userId, projectId);

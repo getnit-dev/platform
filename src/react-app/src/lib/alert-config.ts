@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 
 /**
@@ -155,7 +155,7 @@ export function useAlertConfig(projectId: string): [
   const [config, setConfig] = useState<AlertConfig>(DEFAULT_ALERT_CONFIG);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load config on mount
   useEffect(() => {
@@ -188,22 +188,18 @@ export function useAlertConfig(projectId: string): [
     setValidationError(error);
 
     if (!error) {
-      // Clear existing timeout
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
 
-      // Debounce save by 500ms
-      const timeout = setTimeout(() => {
+      saveTimeoutRef.current = setTimeout(() => {
         saveAlertConfig(projectId, config).catch(console.error);
       }, 500);
-
-      setSaveTimeout(timeout);
     }
 
     return () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
     };
   }, [config, projectId, loading]);

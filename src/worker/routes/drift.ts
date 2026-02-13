@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface DriftRow {
@@ -12,36 +13,6 @@ interface DriftRow {
   currentOutput: string | null;
   details: string | null;
   createdAt: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function asFiniteNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function parseLimit(value: string | undefined, fallback: number): number {
-  const parsed = value ? Number(value) : NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-
-  return Math.min(Math.floor(parsed), 200);
 }
 
 export const driftRoutes = new Hono<AppEnv>();
@@ -61,24 +32,30 @@ driftRoutes.post("/", async (c) => {
     return [payload];
   })();
 
-  const insertedIds: string[] = [];
-
   const rootProjectId = isRecord(payload) ? asNonEmptyString(payload.projectId) : null;
+
+  // Resolve project access once (all entries share the same project)
+  const resolved = await resolveProjectForWrite(c, rootProjectId);
+  if (!resolved) {
+    return c.json({ error: "Project access denied" }, 403);
+  }
+
+  const insertedIds: string[] = [];
+  const statements: D1PreparedStatement[] = [];
 
   for (const raw of entries) {
     if (!isRecord(raw)) {
       continue;
     }
 
-    const requestedProjectId = asNonEmptyString(raw.projectId) ?? rootProjectId;
-    const resolved = await resolveProjectForWrite(c, requestedProjectId);
-    if (!resolved) {
+    const entryProjectId = asNonEmptyString(raw.projectId);
+    if (entryProjectId && entryProjectId !== resolved.projectId) {
       continue;
     }
 
     const testName = asNonEmptyString(raw.testName) ?? asNonEmptyString(raw.name) ?? "unnamed-drift-test";
     const status = asNonEmptyString(raw.status) ?? "error";
-    const similarityScore = asFiniteNumber(raw.similarityScore);
+    const similarityScore = asNumber(raw.similarityScore);
     const baselineOutput = asNonEmptyString(raw.baselineOutput);
     const currentOutput = asNonEmptyString(raw.currentOutput);
     const details = raw.details === undefined ? null : JSON.stringify(raw.details);
@@ -86,36 +63,19 @@ driftRoutes.post("/", async (c) => {
     const id = crypto.randomUUID();
     insertedIds.push(id);
 
-    await c.env.DB.prepare(
-      `
-        INSERT INTO drift_results (
-          id,
-          project_id,
-          test_name,
-          status,
-          similarity_score,
-          baseline_output,
-          current_output,
-          details
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `
-    )
-      .bind(
-        id,
-        resolved.projectId,
-        testName,
-        status,
-        similarityScore,
-        baselineOutput,
-        currentOutput,
-        details
-      )
-      .run();
+    statements.push(
+      c.env.DB.prepare(
+        `INSERT INTO drift_results (id, project_id, test_name, status, similarity_score, baseline_output, current_output, details)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(id, resolved.projectId, testName, status, similarityScore, baselineOutput, currentOutput, details)
+    );
   }
 
-  if (insertedIds.length === 0) {
+  if (statements.length === 0) {
     return c.json({ error: "No valid drift results to insert" }, 400);
   }
+
+  await c.env.DB.batch(statements);
 
   return c.json({ inserted: insertedIds.length, ids: insertedIds }, 201);
 });

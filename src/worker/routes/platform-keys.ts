@@ -1,5 +1,7 @@
 import { Hono, type Context } from "hono";
 import { getRequestActor, userOwnsProject } from "../lib/access";
+import { sha256Hex } from "../lib/crypto";
+import { asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface PlatformKeyRow {
@@ -13,23 +15,8 @@ interface PlatformKeyRow {
   createdAt: string;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
 function createPlatformKey(): string {
   return `nit_platform_${crypto.randomUUID().replace(/-/g, "")}`;
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 async function requireSessionUserId(c: Context<AppEnv>): Promise<string | null> {
@@ -81,7 +68,6 @@ platformKeyRoutes.get("/", async (c) => {
   return c.json({
     keys: rows.results.map((row) => ({
       id: row.id,
-      keyHash: row.keyHash,
       keyHashPrefix: row.keyHash.slice(0, 12),
       projectId: row.projectId,
       name: row.name,

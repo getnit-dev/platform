@@ -70,19 +70,15 @@ export function normalizeUsageEvent(
     return null;
   }
 
-  const userId = typeof input.userId === "string"
-    ? input.userId.trim()
-    : typeof defaults?.userId === "string"
-      ? defaults.userId.trim()
-      : "";
+  // userId and projectId are resolved exclusively from the API key (via defaults).
+  // Client payloads must not influence these fields.
+  const userId = typeof defaults?.userId === "string" ? defaults.userId.trim() : "";
   if (!userId) {
     return null;
   }
 
-  const projectId = typeof input.projectId === "string" && input.projectId.trim()
-    ? input.projectId.trim()
-    : typeof defaults?.projectId === "string" && defaults.projectId.trim()
-      ? defaults.projectId.trim()
+  const projectId = typeof defaults?.projectId === "string" && defaults.projectId.trim()
+    ? defaults.projectId.trim()
     : null;
 
   const keyHash = typeof input.keyHash === "string" && input.keyHash.trim()
@@ -103,6 +99,13 @@ export function normalizeUsageEvent(
   const completionTokens = Math.max(0, Math.floor(parseFiniteNumber(input.completionTokens) ?? 0));
   const costUsd = Math.max(0, parseFiniteNumber(input.costUsd) ?? 0);
 
+  const sessionId = typeof input.sessionId === "string" && input.sessionId.trim()
+    ? input.sessionId.trim()
+    : null;
+
+  const rawDuration = parseFiniteNumber(input.durationMs);
+  const durationMs = rawDuration !== null && rawDuration >= 0 ? Math.floor(rawDuration) : null;
+
   return {
     userId,
     projectId,
@@ -114,7 +117,9 @@ export function normalizeUsageEvent(
     costUsd,
     cacheHit: parseBoolean(input.cacheHit),
     source: coerceSource(input.source, fallbackSource),
-    timestamp: coerceTimestamp(input.timestamp)
+    timestamp: coerceTimestamp(input.timestamp),
+    sessionId,
+    durationMs
   };
 }
 

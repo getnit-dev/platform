@@ -2,19 +2,11 @@ import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { EmptyState, Panel } from "../components/ui";
 import { api, ApiError, type CoverageReport, type MemoryApiResponse, type Project } from "../lib/api";
+import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
 import { toDateTime, toNumber, truncate } from "../lib/format";
 import { cn } from "../lib/utils";
 import { Brain, CheckCircle2, XCircle } from "lucide-react";
 import { ProjectPageShell } from "./project-shared";
-
-const TOOLTIP_STYLE = {
-  borderRadius: 8,
-  border: "1px solid hsl(var(--border))",
-  backgroundColor: "hsl(var(--card))",
-  color: "hsl(var(--card-foreground))",
-};
-
-const TICK_STYLE = { fill: "hsl(var(--muted-foreground))", fontSize: 12 };
 
 interface MemoryEntry {
   reportId: string;
@@ -205,7 +197,7 @@ function MemoryContent(props: { project: Project }) {
     return () => {
       active = false;
     };
-  }, [props.project]);
+  }, [props.project.id]);
 
   if (state.loading) {
     return <Panel><p className="text-sm text-muted-foreground">Loading memory tab...</p></Panel>;

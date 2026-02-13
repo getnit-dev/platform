@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
 import { CommandPalette } from "./components/features/CommandPalette";
@@ -48,14 +48,10 @@ function AppFrame(props: { user: DashboardUser }) {
 function ProtectedRoutes(props: { user: DashboardUser | null }) {
   const location = useLocation();
 
-  console.log("[ProtectedRoutes] User:", props.user, "Location:", location.pathname);
-
   if (!props.user) {
-    console.log("[ProtectedRoutes] No user, redirecting to /login");
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  console.log("[ProtectedRoutes] User authenticated, rendering AppFrame");
   return <AppFrame user={props.user} />;
 }
 
@@ -70,23 +66,17 @@ function PublicAuthRoutes(props: { user: DashboardUser | null }) {
 export function App() {
   const [auth, setAuth] = useState<AuthState>({ loading: true, user: null });
 
-  console.log("[App] Render - auth state:", auth);
-
   useEffect(() => {
     let active = true;
 
     async function load() {
-      console.log("[App] Loading user data...");
       try {
         const me = await api.dashboard.me();
-        console.log("[App] Dashboard API response:", me);
 
         if (!active) {
-          console.log("[App] Component unmounted, ignoring response");
           return;
         }
 
-        console.log("[App] Setting auth state with user:", me);
         Sentry.setUser(me ? { id: me.userId } : null);
         setAuth({ loading: false, user: me });
       } catch (error) {
@@ -96,7 +86,6 @@ export function App() {
 
         // 401 is expected when not logged in - don't log it as an error
         if (error instanceof ApiError && error.status === 401) {
-          console.log("[App] Not authenticated (401), setting user to null");
           Sentry.setUser(null);
           setAuth({ loading: false, user: null });
           return;
@@ -110,12 +99,14 @@ export function App() {
     void load();
 
     return () => {
-      console.log("[App] Cleanup - setting active to false");
       active = false;
     };
   }, []);
 
   const callbackTarget = useMemo(() => `${window.location.origin}/auth/github/callback`, []);
+  const handleAuthenticated = useCallback((user: DashboardUser) => {
+    setAuth({ loading: false, user });
+  }, []);
 
   if (auth.loading) {
     return <LoadingScreen />;
@@ -132,7 +123,7 @@ export function App() {
 
         <Route
           path="/auth/github/callback"
-          element={<GithubCallbackPage onAuthenticated={(user) => setAuth({ loading: false, user })} />}
+          element={<GithubCallbackPage onAuthenticated={handleAuthenticated} />}
         />
 
         <Route element={<ProtectedRoutes user={auth.user} />}>

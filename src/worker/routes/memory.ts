@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { asInteger, asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 /* -------------------------------------------------------------------------- */
@@ -67,22 +68,6 @@ interface PackageMemoryRow {
 /* -------------------------------------------------------------------------- */
 
 const MAX_HISTORY_ENTRIES = 50;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function asInteger(value: unknown, fallback = 0): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.floor(value);
-  }
-
-  return fallback;
-}
 
 function parseJsonArray<T>(value: string | null): T[] {
   if (!value) {

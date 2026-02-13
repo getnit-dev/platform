@@ -110,12 +110,7 @@ function coverageColor(pct: number): {
   };
 }
 
-const TOOLTIP_STYLE = {
-  borderRadius: 8,
-  border: "1px solid hsl(var(--border))",
-  backgroundColor: "hsl(var(--card))",
-  color: "hsl(var(--card-foreground))",
-};
+import { TOOLTIP_STYLE } from "../lib/chart-styles";
 
 /* -------------------------------------------------------------------------- */
 /*  Sub-components                                                            */

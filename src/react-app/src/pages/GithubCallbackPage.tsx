@@ -23,7 +23,7 @@ export function GithubCallbackPage(props: { onAuthenticated: (user: DashboardUse
           return;
         } catch {
           await new Promise((resolve) => {
-            setTimeout(resolve, 350);
+            setTimeout(resolve, 350 * Math.pow(2, attempt));
           });
         }
       }
@@ -38,7 +38,7 @@ export function GithubCallbackPage(props: { onAuthenticated: (user: DashboardUse
     return () => {
       cancelled = true;
     };
-  }, [navigate, props]);
+  }, [navigate, props.onAuthenticated]);
 
   return (
     <div className="grid min-h-screen place-items-center px-4 py-8">

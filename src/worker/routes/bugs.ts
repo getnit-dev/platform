@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { asNonEmptyString, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface BugRow {
@@ -16,23 +17,6 @@ interface BugRow {
   githubPrUrl: string | null;
   createdAt: string;
   resolvedAt: string | null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function parseLimit(value: string | undefined, fallback: number): number {
-  const parsed = value ? Number(value) : NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-
-  return Math.min(Math.floor(parsed), 200);
 }
 
 export const bugRoutes = new Hono<AppEnv>();

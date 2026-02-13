@@ -9,7 +9,7 @@ import { authMiddleware } from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { flexAuthMiddleware } from "./middleware/flex-auth";
 import { sentryMiddleware } from "./middleware/sentry";
-import alertConfigRoutes from "./routes/alert-config";
+import { alertConfigRoutes } from "./routes/alert-config";
 import { bugRoutes } from "./routes/bugs";
 import { driftRoutes } from "./routes/drift";
 import { llmUsageRoutes } from "./routes/llm-usage";

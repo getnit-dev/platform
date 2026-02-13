@@ -15,12 +15,6 @@ function sanitizeLogData(data: LogData): LogData {
 }
 
 export const logger = {
-  info(message: string, data?: LogData): void {
-    const clean = data ? sanitizeLogData(data) : undefined;
-    Sentry.logger.info(message, clean);
-    console.log(`[INFO] ${message}`, clean ?? "");
-  },
-
   warn(message: string, data?: LogData): void {
     const clean = data ? sanitizeLogData(data) : undefined;
     Sentry.logger.warn(message, clean);
@@ -31,10 +25,5 @@ export const logger = {
     const clean = data ? sanitizeLogData(data) : undefined;
     Sentry.logger.error(message, clean);
     console.error(`[ERROR] ${message}`, clean ?? "");
-  },
-
-  debug(message: string, data?: LogData): void {
-    const clean = data ? sanitizeLogData(data) : undefined;
-    Sentry.logger.debug(message, clean);
   },
 };

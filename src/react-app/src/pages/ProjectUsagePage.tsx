@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { EmptyState, Panel } from "../components/ui";
 import {
   api,
@@ -7,29 +7,35 @@ import {
   type Project,
   type UsageBreakdownRow,
   type UsageDailyPoint,
+  type UsageLatencyPoint,
   type UsageSummary
 } from "../lib/api";
+import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
 import { toCurrency, toNumber, truncate } from "../lib/format";
-import { DollarSign, Zap, TrendingUp } from "lucide-react";
+import { Clock, DollarSign, Zap, TrendingUp } from "lucide-react";
 import { ProjectPageShell } from "./project-shared";
 
 const PROVIDER_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
-
-const TOOLTIP_STYLE = {
-  borderRadius: 8,
-  border: "1px solid hsl(var(--border))",
-  backgroundColor: "hsl(var(--card))",
-  color: "hsl(var(--card-foreground))",
-};
-
-const TICK_STYLE = { fill: "hsl(var(--muted-foreground))", fontSize: 12 };
 
 interface UsageState {
   loading: boolean;
   summary: UsageSummary | null;
   daily: UsageDailyPoint[];
   breakdown: UsageBreakdownRow[];
+  latency: UsageLatencyPoint[];
   error: string | null;
+}
+
+function formatDuration(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined) {
+    return "—";
+  }
+
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -42,6 +48,7 @@ function UsageContent(props: { project: Project }) {
     summary: null,
     daily: [],
     breakdown: [],
+    latency: [],
     error: null
   });
 
@@ -50,10 +57,11 @@ function UsageContent(props: { project: Project }) {
 
     async function load() {
       try {
-        const [summary, daily, breakdown] = await Promise.all([
+        const [summary, daily, breakdown, latency] = await Promise.all([
           api.llmUsage.summary({ projectId: props.project.id, days: 90 }),
           api.llmUsage.daily({ projectId: props.project.id, days: 90 }),
-          api.llmUsage.breakdown({ projectId: props.project.id, days: 90 })
+          api.llmUsage.breakdown({ projectId: props.project.id, days: 90 }),
+          api.llmUsage.latency({ projectId: props.project.id, days: 90 })
         ]);
 
         if (!active) {
@@ -65,6 +73,7 @@ function UsageContent(props: { project: Project }) {
           summary: summary.summary,
           daily: daily.daily,
           breakdown: breakdown.breakdown,
+          latency: latency.latency,
           error: null
         });
       } catch (error) {
@@ -78,6 +87,7 @@ function UsageContent(props: { project: Project }) {
           summary: null,
           daily: [],
           breakdown: [],
+          latency: [],
           error: message
         });
       }
@@ -147,6 +157,15 @@ function UsageContent(props: { project: Project }) {
                   <p className="text-sm font-semibold tabular-nums text-foreground">{toNumber(state.summary?.totalTokens ?? 0)}</p>
                 </div>
               </div>
+              {state.summary?.avgDurationMs != null ? (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[hsl(var(--chart-4))]" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Avg Latency</p>
+                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatDuration(state.summary.avgDurationMs)}</p>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -193,6 +212,50 @@ function UsageContent(props: { project: Project }) {
           )}
         </div>
       </Panel>
+
+      {/* ------------------------------------------------------------------ */}
+      {/*  Daily Avg Latency Line Chart                                      */}
+      {/* ------------------------------------------------------------------ */}
+      {state.latency.length > 0 ? (
+        <Panel>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Daily Avg Latency</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Average LLM response time per day</p>
+            </div>
+            <span className="rounded-md bg-[hsl(var(--chart-4)/0.1)] px-2.5 py-1 text-xs font-semibold tabular-nums text-[hsl(var(--chart-4))]">
+              {state.latency.length} days
+            </span>
+          </div>
+          <div className="mt-5 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={state.latency}>
+                <defs>
+                  <linearGradient id="latencyLineGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-4))" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-4))" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="date" tick={TICK_STYLE} />
+                <YAxis tick={TICK_STYLE} tickFormatter={(v) => formatDuration(v)} />
+                <Tooltip
+                  formatter={(value) => [formatDuration(Number(value)), "Avg Latency"]}
+                  contentStyle={TOOLTIP_STYLE}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="avgDurationMs"
+                  stroke="hsl(var(--chart-4))"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+      ) : null}
 
       {/* ------------------------------------------------------------------ */}
       {/*  Two-Column: Pie Chart + Model Table                               */}
@@ -263,6 +326,7 @@ function UsageContent(props: { project: Project }) {
                     <th className="pb-3 pr-4 font-medium">Provider</th>
                     <th className="pb-3 pr-4 font-medium">Model</th>
                     <th className="pb-3 pr-4 font-medium text-right">Tokens</th>
+                    <th className="pb-3 pr-4 font-medium text-right">Avg Latency</th>
                     <th className="pb-3 font-medium text-right">Cost</th>
                   </tr>
                 </thead>
@@ -284,6 +348,7 @@ function UsageContent(props: { project: Project }) {
                       </td>
                       <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{truncate(row.model, 30)}</td>
                       <td className="py-2.5 pr-4 text-right tabular-nums">{toNumber(row.tokens)}</td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatDuration(row.avgDurationMs)}</td>
                       <td className="py-2.5 text-right tabular-nums font-medium">{toCurrency(row.totalCostUsd)}</td>
                     </tr>
                   ))}

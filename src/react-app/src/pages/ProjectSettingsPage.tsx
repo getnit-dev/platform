@@ -437,14 +437,14 @@ function SettingsContent(props: { project: Project }) {
         name: platformKeyName.trim() || undefined
       };
 
-      console.log("[Frontend] Creating platform key with payload:", requestPayload);
-      console.log("[Frontend] platformKeyName state value:", platformKeyName);
-
       const result = await api.platformKeys.create(requestPayload);
 
       setCreatedPlatformKey(result.key);
       setPlatformKeyName("");
       await load();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Failed to create API key";
+      setState((prev) => ({ ...prev, error: message }));
     } finally {
       setBusy(false);
     }
@@ -455,13 +455,16 @@ function SettingsContent(props: { project: Project }) {
     try {
       await api.platformKeys.delete(keyId);
       await load();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Failed to delete API key";
+      setState((prev) => ({ ...prev, error: message }));
     } finally {
       setBusy(false);
     }
   }
 
   function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
   }
 
   async function deleteProject() {
@@ -474,6 +477,9 @@ function SettingsContent(props: { project: Project }) {
     try {
       await api.projects.remove(props.project.id);
       navigate("/", { replace: true });
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Failed to delete project";
+      setState((prev) => ({ ...prev, error: message }));
     } finally {
       setBusy(false);
     }
@@ -493,12 +499,29 @@ function SettingsContent(props: { project: Project }) {
     return <Panel><p className="text-sm text-muted-foreground">Loading project settings...</p></Panel>;
   }
 
-  if (state.error) {
+  if (state.error && !state.user) {
     return <EmptyState title="Settings unavailable" body={state.error} />;
   }
 
   return (
     <div className="space-y-6">
+      {/* Inline operation error */}
+      {state.error && state.user && (
+        <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">{state.error}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setState((prev) => ({ ...prev, error: null }))}
+            className="text-xs text-destructive hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Tab bar */}
       <div className="flex gap-1 rounded-xl border border-border bg-card p-1.5 overflow-x-auto">
         {tabs.map((tab) => {

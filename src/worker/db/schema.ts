@@ -66,9 +66,6 @@ export const sessions = sqliteTable("sessions", {
   expiresAt: timestamp("expires_at").notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  timezone: text("timezone"),
-  city: text("city"),
-  country: text("country"),
   createdAt: timestamp("created_at").notNull().default(now),
   updatedAt: timestamp("updated_at").notNull().default(now)
 }, (table) => ({
@@ -153,7 +150,8 @@ export const coverageReports = sqliteTable("coverage_reports", {
   createdAt: text("created_at").notNull().default(now)
 }, (table) => ({
   coverageProjectIndex: index("idx_coverage_project").on(table.projectId, table.createdAt),
-  coveragePackageIndex: index("idx_coverage_package").on(table.packageId, table.createdAt)
+  coveragePackageIndex: index("idx_coverage_package").on(table.packageId, table.createdAt),
+  coverageProjectCommitIndex: index("idx_coverage_reports_project_commit").on(table.projectId, table.commitSha)
 }));
 
 export const driftResults = sqliteTable("drift_results", {
@@ -169,7 +167,8 @@ export const driftResults = sqliteTable("drift_results", {
   details: text("details"),
   createdAt: text("created_at").notNull().default(now)
 }, (table) => ({
-  driftProjectIndex: index("idx_drift_project").on(table.projectId, table.createdAt)
+  driftProjectIndex: index("idx_drift_project").on(table.projectId, table.createdAt),
+  driftCreatedIndex: index("idx_drift_results_created").on(table.createdAt)
 }));
 
 export const bugs = sqliteTable("bugs", {
@@ -204,16 +203,20 @@ export const usageEvents = sqliteTable("usage_events", {
   promptTokens: integer("prompt_tokens").notNull().default(0),
   completionTokens: integer("completion_tokens").notNull().default(0),
   costUsd: real("cost_usd").notNull().default(0),
-  marginUsd: real("margin_usd").notNull().default(0),
   cacheHit: integer("cache_hit", { mode: "boolean" }).notNull().default(false),
   source: text("source").notNull(),
   timestamp: text("timestamp").notNull(),
+  sessionId: text("session_id"),
+  durationMs: integer("duration_ms"),
   createdAt: text("created_at").notNull().default(now)
 }, (table) => ({
   usageEventsUserTimestampIndex: index("idx_usage_events_user_ts").on(
     table.userId,
     table.timestamp
-  )
+  ),
+  usageEventsTimestampIndex: index("idx_usage_events_timestamp").on(table.timestamp),
+  usageEventsProjectTimestampIndex: index("idx_usage_events_project_ts").on(table.projectId, table.timestamp),
+  usageEventsSessionIndex: index("idx_usage_events_session").on(table.sessionId)
 }));
 
 export const usageDaily = sqliteTable("usage_daily", {
@@ -288,7 +291,8 @@ export const platformApiKeys = sqliteTable("platform_api_keys", {
 }, (table) => ({
   platformApiKeysHashIndex: index("idx_platform_api_keys_hash").on(table.keyHash),
   platformApiKeysHashUnique: uniqueIndex("uq_platform_api_keys_hash").on(table.keyHash),
-  platformApiKeysUserIndex: index("idx_platform_api_keys_user").on(table.userId)
+  platformApiKeysUserIndex: index("idx_platform_api_keys_user").on(table.userId),
+  platformApiKeysUserProjectIndex: index("idx_platform_api_keys_user_project").on(table.userId, table.projectId)
 }));
 
 export const projectMemory = sqliteTable("project_memory", {

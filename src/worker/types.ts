@@ -10,6 +10,8 @@ export interface UsageEvent {
   cacheHit: boolean;
   source: "byok" | "cli";
   timestamp: string;
+  sessionId: string | null;
+  durationMs: number | null;
 }
 
 export interface AuthSession {
@@ -24,7 +26,6 @@ export type AppBindings = {
   DB: D1Database;
   KV: KVNamespace;
   R2: R2Bucket;
-  AI: unknown;
   ASSETS: Fetcher;
   USAGE_EVENTS_QUEUE: Queue<UsageEvent>;
   USAGE_INGEST_TOKEN?: string;

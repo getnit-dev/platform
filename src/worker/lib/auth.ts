@@ -26,7 +26,10 @@ let cachedDb: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 export function createAuth(env: AppBindings) {
   // If secret changed, invalidate cache
-  const currentSecret = env.BETTER_AUTH_SECRET ?? "dev-insecure-change-me";
+  const currentSecret = env.BETTER_AUTH_SECRET;
+  if (!currentSecret) {
+    throw new Error("BETTER_AUTH_SECRET is not configured. Set it via: wrangler secret put BETTER_AUTH_SECRET");
+  }
   if (cachedSecret !== currentSecret) {
     cachedAuth = null;
     cachedSecret = currentSecret;
@@ -64,7 +67,6 @@ export function createAuth(env: AppBindings) {
           trustedOrigins: [
             "http://localhost:5173",
             "http://localhost:8788",
-            "http://platform.getnit.dev",
             "https://platform.getnit.dev"
           ],
           emailAndPassword: {
@@ -76,7 +78,7 @@ export function createAuth(env: AppBindings) {
             updateAge: SESSION_UPDATE_AGE_SECONDS
           },
           advanced: {
-            useSecureCookies: true
+            useSecureCookies: !env.BETTER_AUTH_URL?.startsWith("http://localhost")
           }
         }
       )

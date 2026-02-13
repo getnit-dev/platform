@@ -25,18 +25,13 @@ export function LoginPage(props: { callbackUrl: string }) {
     setError(null);
 
     try {
-      console.log("[Login] Attempting login...");
-      const response = await api.auth.login({
+      await api.auth.login({
         email,
         password
       });
 
-      console.log("[Login] Login successful, response:", response);
-      console.log("[Login] Navigating to:", nextPath);
-
       window.location.href = nextPath;
     } catch (caught) {
-      console.error("[Login] Login failed:", caught);
       const message = caught instanceof ApiError ? caught.message : "Unable to sign in";
       setError(message);
     } finally {

@@ -29,7 +29,7 @@ export function ProjectDetailLayout(props: {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {STATS.map(({ key, label, icon: Icon, color }) => {
-          const value = (props.project as unknown as Record<string, unknown>)[key] as number ?? 0;
+          const value = props.project[key] ?? 0;
           return (
             <div
               key={key}

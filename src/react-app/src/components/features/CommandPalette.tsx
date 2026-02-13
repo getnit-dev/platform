@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "../ui/command";
 import { api, type Project } from "../../lib/api";
-import { FolderKanban, Settings, Home } from "lucide-react";
+import { FolderKanban, Home } from "lucide-react";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -41,10 +41,6 @@ export function CommandPalette() {
           <CommandItem onSelect={() => navigateTo("/")}>
             <Home className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
-          </CommandItem>
-          <CommandItem onSelect={() => navigateTo("/settings")}>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
           </CommandItem>
         </CommandGroup>
 

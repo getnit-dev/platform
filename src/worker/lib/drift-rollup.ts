@@ -1,17 +1,5 @@
 import type { AppBindings } from "../types";
-
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-
-  return Math.floor(parsed);
-}
+import { parsePositiveInt } from "./validation";
 
 export async function aggregateDriftDaily(env: Pick<AppBindings, "DB" | "KV">): Promise<void> {
   const rows = await env.DB.prepare(
@@ -46,8 +34,8 @@ export async function cleanupDriftData(
   const retentionDays = parsePositiveInt(env.DRIFT_RETENTION_DAYS, 365);
 
   await env.DB.prepare(
-    "DELETE FROM drift_results WHERE julianday(created_at) < julianday('now') - ?"
+    "DELETE FROM drift_results WHERE created_at < datetime('now', ?)"
   )
-    .bind(retentionDays)
+    .bind(`-${retentionDays} days`)
     .run();
 }

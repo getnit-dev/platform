@@ -1,10 +1,7 @@
 import { Hono } from "hono";
 import { canAccessProject, resolveProjectForWrite } from "../lib/access";
+import { asNonEmptyString } from "../lib/validation";
 import type { AppEnv } from "../types";
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
 
 function sanitizeFilename(filename: string): string {
   return filename.replace(/[^a-zA-Z0-9._-]/g, "_");

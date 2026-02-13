@@ -3,23 +3,11 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { EmptyState, Gauge, Panel } from "../components/ui";
 import { Badge } from "../components/ui/badge";
 import { api, ApiError, type Bug, type Project } from "../lib/api";
+import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
 import { groupByDate, toDateTime, truncate } from "../lib/format";
 import { cn } from "../lib/utils";
 import { ProjectPageShell } from "./project-shared";
 import { AlertTriangle, CheckCircle2, Bug as BugIcon } from "lucide-react";
-
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
-const TOOLTIP_STYLE = {
-  borderRadius: 8,
-  border: "1px solid hsl(var(--border))",
-  backgroundColor: "hsl(var(--card))",
-  color: "hsl(var(--card-foreground))",
-};
-
-const TICK_STYLE = { fill: "hsl(var(--muted-foreground))", fontSize: 12 };
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low"] as const;
 
@@ -371,6 +359,9 @@ function BugsContent(props: { project: Project }) {
     try {
       await api.bugs.update(bugId, { status: "fixed" });
       await load();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Failed to update bug status";
+      setState((prev) => ({ ...prev, error: message }));
     } finally {
       setUpdatingId(null);
     }

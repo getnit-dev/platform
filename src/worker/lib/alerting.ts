@@ -41,6 +41,11 @@ async function checkProjectAlerts(
   if (config.email_threshold_usd) {
     await checkSpendingAlerts(db, config);
   }
+
+  // Check budget alert percent
+  if (config.budget_alert_percent && config.email_threshold_usd) {
+    await checkBudgetPercentAlerts(db, config);
+  }
 }
 
 /**
@@ -101,6 +106,63 @@ async function checkSpendingAlerts(
 }
 
 /**
+ * Check if spending has reached a percentage of the budget threshold
+ */
+async function checkBudgetPercentAlerts(
+  db: D1Database,
+  config: Record<string, unknown>
+): Promise<void> {
+  const budgetPercent = Number(config.budget_alert_percent);
+  const emailThreshold = Number(config.email_threshold_usd);
+  if (!budgetPercent || !emailThreshold) return;
+
+  const warningThreshold = emailThreshold * (budgetPercent / 100);
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const result = await db
+    .prepare(
+      `SELECT SUM(total_cost_usd) as total
+       FROM usage_daily
+       WHERE project_id = ?
+         AND date >= ?`
+    )
+    .bind(config.project_id, thirtyDaysAgo)
+    .first();
+
+  const totalSpending = Number(result?.total || 0);
+
+  if (totalSpending >= warningThreshold && totalSpending < emailThreshold) {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const recentAlert = await db
+      .prepare(
+        `SELECT id FROM alert_history
+         WHERE project_id = ?
+           AND alert_type = 'budget_threshold'
+           AND created_at >= ?
+         LIMIT 1`
+      )
+      .bind(config.project_id, oneDayAgo)
+      .first();
+
+    if (recentAlert) return;
+
+    const percentUsed = (totalSpending / emailThreshold) * 100;
+    const message = `⚠️ Budget Warning: Project spending has reached ${percentUsed.toFixed(1)}% of the $${emailThreshold.toFixed(2)} budget ($${totalSpending.toFixed(2)} spent)`;
+
+    await sendAlert(db, config, {
+      alertType: "budget_threshold",
+      message,
+      threshold: budgetPercent,
+      currentValue: percentUsed
+    });
+  }
+}
+
+/**
  * Send an alert via configured channels
  */
 async function sendAlert(
@@ -120,11 +182,14 @@ async function sendAlert(
   try {
     // Send to Slack if configured
     if (config.slack_webhook) {
-      await fetch(String(config.slack_webhook), {
+      const slackResponse = await fetch(String(config.slack_webhook), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: alert.message })
       });
+      if (!slackResponse.ok) {
+        throw new Error(`Slack webhook failed: ${slackResponse.status}`);
+      }
     }
 
     // Send email via Resend if configured
@@ -194,6 +259,15 @@ function getEmailSubject(alertType: string): string {
   }
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /**
  * Send email via Resend API
  */
@@ -207,23 +281,25 @@ async function sendEmailViaResend(params: {
   threshold: number;
   currentValue: number;
 }): Promise<void> {
+  const safeSubject = escapeHtml(params.subject);
+  const safeMessage = escapeHtml(params.message);
   const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${params.subject}</title>
+  <title>${safeSubject}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
   <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 32px; text-align: center;">
-      <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">${params.subject}</h1>
+      <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">${safeSubject}</h1>
     </div>
 
     <div style="padding: 32px;">
       <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin-bottom: 24px; border-radius: 4px;">
-        <p style="margin: 0; color: #991b1b; font-size: 16px; line-height: 1.5;">${params.message}</p>
+        <p style="margin: 0; color: #991b1b; font-size: 16px; line-height: 1.5;">${safeMessage}</p>
       </div>
 
       <table style="width: 100%; margin-bottom: 24px; border-collapse: collapse;">

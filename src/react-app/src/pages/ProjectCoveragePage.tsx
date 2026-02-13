@@ -10,20 +10,10 @@ import {
 } from "recharts";
 import { EmptyState, Panel } from "../components/ui";
 import { api, ApiError, type CoverageReport, type Project } from "../lib/api";
+import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
 import { toDateTime, toNumber, toPercentNumber, truncate } from "../lib/format";
 import { cn } from "../lib/utils";
 import { ProjectPageShell } from "./project-shared";
-
-/* ---------- theme tokens ---------- */
-
-const TOOLTIP_STYLE = {
-  borderRadius: 8,
-  border: "1px solid hsl(var(--border))",
-  backgroundColor: "hsl(var(--card))",
-  color: "hsl(var(--card-foreground))",
-};
-
-const TICK_STYLE = { fill: "hsl(var(--muted-foreground))", fontSize: 12 };
 
 /* ---------- types ---------- */
 

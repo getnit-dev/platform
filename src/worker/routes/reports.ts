@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { asInteger, asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface CoverageReportRow {
@@ -30,45 +31,6 @@ interface CoverageReportRow {
   executionEnvironment: string | null;
   runMetadata: string | null;
   createdAt: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function asInteger(value: unknown, fallback = 0): number {
-  const numeric = asNumber(value);
-  if (numeric === null) {
-    return fallback;
-  }
-
-  return Math.max(0, Math.floor(numeric));
-}
-
-function parseLimit(value: string | undefined, fallback: number): number {
-  const parsed = value ? Number(value) : NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-
-  return Math.min(Math.floor(parsed), 100);
 }
 
 export const reportRoutes = new Hono<AppEnv>();

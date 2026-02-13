@@ -1,26 +1,11 @@
 import { Hono } from "hono";
+import { safeEqual } from "../lib/crypto";
 import type { AppEnv } from "../types";
 
 function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-
-  if (aBytes.length !== bBytes.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < aBytes.length; i += 1) {
-    result |= aBytes[i] ^ bBytes[i];
-  }
-
-  return result === 0;
 }
 
 async function computeGithubSignature(secret: string, payload: ArrayBuffer): Promise<string> {
@@ -70,7 +55,6 @@ webhookRoutes.post("/github", async (c) => {
   return c.json({
     accepted: true,
     event: eventName,
-    deliveryId,
-    storedAs: objectKey
+    deliveryId
   });
 });
