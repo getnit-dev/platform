@@ -82,7 +82,7 @@ function ProjectCard({
   return (
     <Link
       to={`/projects/${project.id}/runs`}
-      className="group block rounded-xl border border-border bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
+      className="group block rounded-xl border border-divider bg-content1 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
     >
       <div className="p-5 space-y-4">
         {/* Top row: name + status */}
@@ -97,7 +97,7 @@ function ProjectCard({
               </h3>
             </div>
             {project.repoUrl && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground truncate pl-10">
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-default-500 truncate pl-10">
                 <GitBranch className="h-3 w-3 flex-shrink-0" />
                 {truncate(project.repoUrl.replace(/^https?:\/\/(www\.)?/, ""), 48)}
               </p>
@@ -107,31 +107,31 @@ function ProjectCard({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-2 border-t border-border pt-3">
+        <div className="grid grid-cols-5 gap-2 border-t border-divider pt-3">
           <div className="flex flex-col items-center gap-1">
-            <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+            <Activity className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.totalRuns ?? 0)}</span>
-            <span className="text-[10px] text-muted-foreground">Runs</span>
+            <span className="text-[10px] text-default-500">Runs</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <BugIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            <BugIcon className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.detectedBugs ?? 0)}</span>
-            <span className="text-[10px] text-muted-foreground">Bugs</span>
+            <span className="text-[10px] text-default-500">Bugs</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+            <FlaskConical className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.createdIssues ?? 0)}</span>
-            <span className="text-[10px] text-muted-foreground">Issues</span>
+            <span className="text-[10px] text-default-500">Issues</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
+            <GitPullRequest className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.createdPRs ?? 0)}</span>
-            <span className="text-[10px] text-muted-foreground">PRs</span>
+            <span className="text-[10px] text-default-500">PRs</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+            <Zap className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.totalTokens ?? 0)}</span>
-            <span className="text-[10px] text-muted-foreground">Tokens</span>
+            <span className="text-[10px] text-default-500">Tokens</span>
           </div>
         </div>
       </div>
@@ -158,7 +158,7 @@ function CreateProjectModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-md p-4"
       onClick={onClose}
     >
       <div
@@ -168,7 +168,7 @@ function CreateProjectModal({
         <Panel className="relative">
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-4 top-4 rounded-md p-1 text-default-500 hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -176,7 +176,7 @@ function CreateProjectModal({
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold">Create New Project</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-default-500">
                 Add a project to start tracking test coverage and bugs.
               </p>
             </div>
@@ -205,8 +205,8 @@ function CreateProjectModal({
               </div>
 
               {state.error && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-                  <p className="text-sm text-destructive">{state.error}</p>
+                <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
+                  <p className="text-sm text-danger">{state.error}</p>
                 </div>
               )}
 
@@ -248,13 +248,13 @@ function OnboardingCreate({
       <div className="w-full max-w-md">
         <Panel>
           <div className="space-y-6">
-            <div className="text-center space-y-4 pb-4 border-b border-border">
+            <div className="text-center space-y-4 pb-4 border-b border-divider">
               <div className="flex justify-center">
                 <img src="/favicon.svg" alt="nit" className="w-16 h-16" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold">Create Your First Project</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-default-500">
                   Get started by creating a project to track
                 </p>
               </div>
@@ -283,8 +283,8 @@ function OnboardingCreate({
               </div>
 
               {state.error && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-                  <p className="text-sm text-destructive">{state.error}</p>
+                <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
+                  <p className="text-sm text-danger">{state.error}</p>
                 </div>
               )}
 
@@ -309,13 +309,13 @@ function OnboardingSetup({ createdProject }: { createdProject: Project }) {
       <div className="w-full max-w-3xl">
         <Panel>
           <div className="space-y-6">
-            <div className="text-center space-y-3 pb-4 border-b border-border">
+            <div className="text-center space-y-3 pb-4 border-b border-divider">
               <div className="flex justify-center">
                 <img src="/favicon.svg" alt="nit" className="w-16 h-16" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold">Project Created Successfully</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-default-500">
                   Follow these steps to connect your local project
                 </p>
               </div>
@@ -326,13 +326,13 @@ function OnboardingSetup({ createdProject }: { createdProject: Project }) {
 
               <div className="space-y-3">
                 <SetupStep number={1} title="Initialize nit in your project" description="Run this command in your project directory:">
-                  <pre className="bg-secondary p-3 rounded-lg text-sm overflow-x-auto border border-border">
+                  <pre className="bg-default-200 p-3 rounded-lg text-sm overflow-x-auto border border-divider">
                     <code className="text-primary">nit init</code>
                   </pre>
                 </SetupStep>
 
-                <SetupStep number={2} title="Configure your platform connection" description={<>Edit <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">.nit.yml</code> to connect:</>}>
-                  <pre className="bg-secondary p-3 rounded-lg text-sm overflow-x-auto border border-border">
+                <SetupStep number={2} title="Configure your platform connection" description={<>Edit <code className="bg-default-200 px-1.5 py-0.5 rounded text-xs">.nit.yml</code> to connect:</>}>
+                  <pre className="bg-default-200 p-3 rounded-lg text-sm overflow-x-auto border border-divider">
                     <code>{`llm:
   provider: openai
   model: gpt-4o
@@ -345,8 +345,8 @@ platform:
                   </pre>
                 </SetupStep>
 
-                <SetupStep number={3} title="Set up GitHub Actions (optional)" description={<>Create <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">.github/workflows/nit.yml</code>:</>}>
-                  <pre className="bg-secondary p-3 rounded-lg text-sm overflow-x-auto border border-border">
+                <SetupStep number={3} title="Set up GitHub Actions (optional)" description={<>Create <code className="bg-default-200 px-1.5 py-0.5 rounded text-xs">.github/workflows/nit.yml</code>:</>}>
+                  <pre className="bg-default-200 p-3 rounded-lg text-sm overflow-x-auto border border-divider">
                     <code>{`name: nit
 
 on: [pull_request]
@@ -369,18 +369,18 @@ jobs:
                 </SetupStep>
 
                 <SetupStep number={4} title="Generate tests and see results here">
-                  <pre className="bg-secondary p-3 rounded-lg text-sm overflow-x-auto border border-border">
+                  <pre className="bg-default-200 p-3 rounded-lg text-sm overflow-x-auto border border-divider">
                     <code className="text-primary">nit pick --report</code>
                   </pre>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-default-500">
                     Your projects will appear on this dashboard once the first report is uploaded.
                   </p>
                 </SetupStep>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border">
-              <p className="text-sm text-muted-foreground text-center">
+            <div className="pt-4 border-t border-divider">
+              <p className="text-sm text-default-500 text-center">
                 Need help?{" "}
                 <a
                   href="https://github.com/getnit-dev/nit"
@@ -411,14 +411,14 @@ function SetupStep({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg bg-muted border border-border p-4">
+    <div className="rounded-lg bg-default-100 border border-divider p-4">
       <div className="flex items-start gap-3">
         <div className="rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold flex-shrink-0 bg-primary text-primary-foreground">
           {number}
         </div>
         <div className="flex-1 space-y-2">
           <h3 className="text-sm font-semibold">{title}</h3>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          {description && <p className="text-sm text-default-500">{description}</p>}
           {children}
         </div>
       </div>
@@ -447,7 +447,7 @@ function SummaryBar({ projects }: { projects: Project[] }) {
   if (totalTokens > 0) parts.push(`${toNumber(totalTokens)} tokens`);
 
   return (
-    <p className="text-sm text-muted-foreground">
+    <p className="text-sm text-default-500">
       {parts.join(" \u00b7 ")}
     </p>
   );
@@ -563,24 +563,24 @@ export function ProjectsOverviewPage() {
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <div className="h-7 w-28 rounded-md bg-muted animate-pulse" />
-            <div className="h-4 w-52 rounded-md bg-muted animate-pulse" />
+            <div className="h-7 w-28 rounded-md bg-default-100 animate-pulse" />
+            <div className="h-4 w-52 rounded-md bg-default-100 animate-pulse" />
           </div>
-          <div className="h-9 w-28 rounded-md bg-muted animate-pulse" />
+          <div className="h-9 w-28 rounded-md bg-default-100 animate-pulse" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div key={i} className="rounded-xl border border-divider bg-content1 p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-muted animate-pulse" />
-                <div className="h-4 w-32 rounded-md bg-muted animate-pulse" />
+                <div className="h-8 w-8 rounded-lg bg-default-100 animate-pulse" />
+                <div className="h-4 w-32 rounded-md bg-default-100 animate-pulse" />
               </div>
-              <div className="grid grid-cols-5 gap-2 pt-3 border-t border-border">
+              <div className="grid grid-cols-5 gap-2 pt-3 border-t border-divider">
                 {Array.from({ length: 5 }).map((_, j) => (
                   <div key={j} className="flex flex-col items-center gap-1">
-                    <div className="h-3.5 w-3.5 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-6 rounded bg-muted animate-pulse" />
-                    <div className="h-2.5 w-8 rounded bg-muted animate-pulse" />
+                    <div className="h-3.5 w-3.5 rounded bg-default-100 animate-pulse" />
+                    <div className="h-4 w-6 rounded bg-default-100 animate-pulse" />
+                    <div className="h-2.5 w-8 rounded bg-default-100 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -631,7 +631,7 @@ export function ProjectsOverviewPage() {
               createdProject: null,
             })
           }
-          className="bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+          className=""
         >
           <Plus className="h-4 w-4 mr-1.5" />
           New Project

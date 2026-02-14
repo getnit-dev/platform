@@ -111,7 +111,7 @@ function UsageContent(props: { project: Project }) {
   }, [state.breakdown]);
 
   if (state.loading) {
-    return <Panel><p className="text-sm text-muted-foreground">Loading LLM usage analytics...</p></Panel>;
+    return <Panel><p className="text-sm text-default-500">Loading LLM usage analytics...</p></Panel>;
   }
 
   if (state.error) {
@@ -124,7 +124,7 @@ function UsageContent(props: { project: Project }) {
       {/* ------------------------------------------------------------------ */}
       {/*  Hero Spend Section                                                */}
       {/* ------------------------------------------------------------------ */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-[hsl(var(--card))] to-[hsl(var(--chart-1)/0.04)]">
+      <div className="relative overflow-hidden rounded-xl border border-divider bg-gradient-to-r from-[hsl(var(--heroui-content1))] to-[hsl(var(--chart-1)/0.04)]">
         <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-[hsl(var(--chart-1)/0.05)] blur-3xl" />
         <div className="absolute -right-16 -bottom-16 h-40 w-40 rounded-full bg-[hsl(var(--chart-4)/0.05)] blur-3xl" />
 
@@ -135,7 +135,7 @@ function UsageContent(props: { project: Project }) {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--chart-1)/0.12)]">
                 <DollarSign className="h-5 w-5 text-[hsl(var(--chart-1))]" />
               </div>
-              <span className="text-sm font-medium text-muted-foreground">Total Spend (90d)</span>
+              <span className="text-sm font-medium text-default-500">Total Spend (90d)</span>
             </div>
             <p className="mt-3 text-5xl font-bold tracking-tight text-foreground tabular-nums">
               {toCurrency(state.summary?.totalCostUsd ?? 0)}
@@ -146,14 +146,14 @@ function UsageContent(props: { project: Project }) {
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-[hsl(var(--chart-3))]" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Requests</p>
+                  <p className="text-xs text-default-500">Requests</p>
                   <p className="text-sm font-semibold tabular-nums text-foreground">{toNumber(state.summary?.totalRequests ?? 0)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[hsl(var(--chart-2))]" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Tokens</p>
+                  <p className="text-xs text-default-500">Tokens</p>
                   <p className="text-sm font-semibold tabular-nums text-foreground">{toNumber(state.summary?.totalTokens ?? 0)}</p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ function UsageContent(props: { project: Project }) {
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-[hsl(var(--chart-4))]" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Avg Latency</p>
+                    <p className="text-xs text-default-500">Avg Latency</p>
                     <p className="text-sm font-semibold tabular-nums text-foreground">{formatDuration(state.summary.avgDurationMs)}</p>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ function UsageContent(props: { project: Project }) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Daily Spend</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Cost per day over the last 90 days</p>
+            <p className="mt-0.5 text-xs text-default-500">Cost per day over the last 90 days</p>
           </div>
           {state.daily.length > 0 ? (
             <span className="rounded-md bg-[hsl(var(--chart-1)/0.1)] px-2.5 py-1 text-xs font-semibold tabular-nums text-[hsl(var(--chart-1))]">
@@ -193,11 +193,11 @@ function UsageContent(props: { project: Project }) {
               <BarChart data={state.daily} barCategoryGap="15%">
                 <defs>
                   <linearGradient id="spendBarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.7} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                    <stop offset="0%" stopColor="hsl(var(--heroui-primary))" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="hsl(var(--heroui-primary))" stopOpacity={0.25} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" vertical={false} />
                 <XAxis dataKey="date" tick={TICK_STYLE} />
                 <YAxis tick={TICK_STYLE} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
@@ -208,7 +208,7 @@ function UsageContent(props: { project: Project }) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="grid h-full place-items-center text-sm text-muted-foreground">No daily spend data.</div>
+            <div className="grid h-full place-items-center text-sm text-default-500">No daily spend data.</div>
           )}
         </div>
       </Panel>
@@ -221,7 +221,7 @@ function UsageContent(props: { project: Project }) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Daily Avg Latency</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">Average LLM response time per day</p>
+              <p className="mt-0.5 text-xs text-default-500">Average LLM response time per day</p>
             </div>
             <span className="rounded-md bg-[hsl(var(--chart-4)/0.1)] px-2.5 py-1 text-xs font-semibold tabular-nums text-[hsl(var(--chart-4))]">
               {state.latency.length} days
@@ -236,7 +236,7 @@ function UsageContent(props: { project: Project }) {
                     <stop offset="100%" stopColor="hsl(var(--chart-4))" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" vertical={false} />
                 <XAxis dataKey="date" tick={TICK_STYLE} />
                 <YAxis tick={TICK_STYLE} tickFormatter={(v) => formatDuration(v)} />
                 <Tooltip
@@ -265,7 +265,7 @@ function UsageContent(props: { project: Project }) {
         {/* LEFT -- Provider Cost Pie */}
         <Panel>
           <h2 className="text-sm font-semibold text-foreground">Cost by Provider</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Breakdown of spend across LLM providers</p>
+          <p className="mt-0.5 text-xs text-default-500">Breakdown of spend across LLM providers</p>
 
           {pieData.length > 0 ? (
             <div className="mt-4 flex flex-col items-center">
@@ -302,27 +302,27 @@ function UsageContent(props: { project: Project }) {
                       className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: PROVIDER_COLORS[index % PROVIDER_COLORS.length] }}
                     />
-                    <span className="text-muted-foreground">{entry.name}</span>
+                    <span className="text-default-500">{entry.name}</span>
                     <span className="font-medium tabular-nums text-foreground">{toCurrency(entry.value)}</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="mt-4 grid h-56 place-items-center text-sm text-muted-foreground">No provider spend data.</div>
+            <div className="mt-4 grid h-56 place-items-center text-sm text-default-500">No provider spend data.</div>
           )}
         </Panel>
 
         {/* RIGHT -- Model Breakdown Table */}
         <Panel>
           <h2 className="text-sm font-semibold text-foreground">Model Breakdown</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Token usage and cost by model</p>
+          <p className="mt-0.5 text-xs text-default-500">Token usage and cost by model</p>
 
           <div className="mt-4 overflow-auto max-h-80">
             {state.breakdown.length > 0 ? (
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-muted-foreground">
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-default-500">
                     <th className="pb-3 pr-4 font-medium">Provider</th>
                     <th className="pb-3 pr-4 font-medium">Model</th>
                     <th className="pb-3 pr-4 font-medium text-right">Tokens</th>
@@ -330,9 +330,9 @@ function UsageContent(props: { project: Project }) {
                     <th className="pb-3 font-medium text-right">Cost</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-divider/50">
                   {state.breakdown.slice(0, 24).map((row) => (
-                    <tr key={`${row.provider}:${row.model}`} className="group transition-colors hover:bg-muted/30">
+                    <tr key={`${row.provider}:${row.model}`} className="group transition-colors hover:bg-default-100/30">
                       <td className="py-2.5 pr-4">
                         <span className="inline-flex items-center gap-1.5">
                           <span
@@ -346,16 +346,16 @@ function UsageContent(props: { project: Project }) {
                           {row.provider}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{truncate(row.model, 30)}</td>
+                      <td className="py-2.5 pr-4 font-mono text-xs text-default-500">{truncate(row.model, 30)}</td>
                       <td className="py-2.5 pr-4 text-right tabular-nums">{toNumber(row.tokens)}</td>
-                      <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatDuration(row.avgDurationMs)}</td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums text-default-500">{formatDuration(row.avgDurationMs)}</td>
                       <td className="py-2.5 text-right tabular-nums font-medium">{toCurrency(row.totalCostUsd)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="grid h-56 place-items-center text-sm text-muted-foreground">No model breakdown data.</div>
+              <div className="grid h-56 place-items-center text-sm text-default-500">No model breakdown data.</div>
             )}
           </div>
         </Panel>

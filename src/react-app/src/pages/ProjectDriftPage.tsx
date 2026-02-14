@@ -102,7 +102,7 @@ function StatusBanner(props: {
 
 function SimilarityBar(props: { value: number | null }) {
   if (props.value === null) {
-    return <span className="text-xs text-muted-foreground">--</span>;
+    return <span className="text-xs text-default-500">--</span>;
   }
 
   const pct = Math.max(0, Math.min(100, props.value * 100));
@@ -115,13 +115,13 @@ function SimilarityBar(props: { value: number | null }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-default-100">
         <div
           className={cn("h-full rounded-full transition-all duration-300", barColor)}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="mono text-[11px] tabular-nums text-muted-foreground">{pct.toFixed(0)}%</span>
+      <span className="mono text-[11px] tabular-nums text-default-500">{pct.toFixed(0)}%</span>
     </div>
   );
 }
@@ -159,13 +159,13 @@ function AlertLog(props: { alerts: DriftResult[] }) {
       >
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-foreground">Alert history</h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
+          <span className="rounded-full bg-default-100 px-2 py-0.5 text-[11px] font-medium text-default-500 tabular-nums">
             {props.alerts.length}
           </span>
         </div>
         <svg
           viewBox="0 0 24 24"
-          className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")}
+          className={cn("h-4 w-4 text-default-500 transition-transform duration-200", expanded && "rotate-180")}
           fill="none"
           stroke="currentColor"
           strokeWidth={2}
@@ -180,7 +180,7 @@ function AlertLog(props: { alerts: DriftResult[] }) {
         {displayed.map((item) => (
           <div
             key={item.id}
-            className="flex items-start gap-3 border-b border-border/50 py-2.5 last:border-0"
+            className="flex items-start gap-3 border-b border-divider/50 py-2.5 last:border-0"
           >
             {/* Dot indicator */}
             <div
@@ -196,11 +196,11 @@ function AlertLog(props: { alerts: DriftResult[] }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-foreground">{item.testName}</p>
-                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                <span className="shrink-0 text-[11px] tabular-nums text-default-500">
                   {toDateTime(item.createdAt)}
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+              <p className="mt-0.5 text-xs text-default-500 leading-relaxed">
                 {truncate(item.details, 140) || "No details attached"}
               </p>
             </div>
@@ -321,7 +321,7 @@ function DriftContent(props: { project: Project }) {
   );
 
   if (state.loading) {
-    return <Panel><p className="text-sm text-muted-foreground">Loading drift timeline...</p></Panel>;
+    return <Panel><p className="text-sm text-default-500">Loading drift timeline...</p></Panel>;
   }
 
   if (state.error) {
@@ -342,12 +342,12 @@ function DriftContent(props: { project: Project }) {
         {/* Left: Drift timeline bar chart */}
         <Panel>
           <h2 className="text-sm font-semibold text-foreground">Drift timeline</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Total vs drifted checks per day</p>
+          <p className="mt-0.5 text-xs text-default-500">Total vs drifted checks per day</p>
           <div className="mt-4 h-64">
             {state.timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={state.timeline} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" />
                   <XAxis dataKey="date" tick={TICK_STYLE} />
                   <YAxis tick={TICK_STYLE} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
@@ -366,7 +366,7 @@ function DriftContent(props: { project: Project }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="grid h-full place-items-center text-sm text-muted-foreground">
+              <div className="grid h-full place-items-center text-sm text-default-500">
                 No drift checks recorded yet.
               </div>
             )}
@@ -376,12 +376,12 @@ function DriftContent(props: { project: Project }) {
         {/* Right: Similarity score trend line chart */}
         <Panel>
           <h2 className="text-sm font-semibold text-foreground">Similarity score trend</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Per-check similarity over time</p>
+          <p className="mt-0.5 text-xs text-default-500">Per-check similarity over time</p>
           <div className="mt-4 h-64">
             {similarityTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={similarityTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" />
                   <XAxis dataKey="date" tick={TICK_STYLE} />
                   <YAxis domain={[0, 100]} tick={TICK_STYLE} />
                   <Tooltip
@@ -398,7 +398,7 @@ function DriftContent(props: { project: Project }) {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="grid h-full place-items-center text-sm text-muted-foreground">
+              <div className="grid h-full place-items-center text-sm text-default-500">
                 No similarity score samples available.
               </div>
             )}
@@ -409,17 +409,17 @@ function DriftContent(props: { project: Project }) {
       {/* ========== 3. Test Status Table ========== */}
       <Panel>
         <h2 className="text-sm font-semibold text-foreground">Test status</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-0.5 text-xs text-default-500">
           Latest result per test with baseline management
         </p>
 
         {latestPerTest.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">No drift tests available.</p>
+          <p className="mt-4 text-sm text-default-500">No drift tests available.</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <tr className="text-left text-[11px] uppercase tracking-wider text-default-500 border-b border-divider">
                   <th className="pb-2 pr-4 font-medium">Test name</th>
                   <th className="pb-2 pr-4 font-medium">Status</th>
                   <th className="pb-2 pr-4 font-medium">Similarity</th>
@@ -435,7 +435,7 @@ function DriftContent(props: { project: Project }) {
                     <tr
                       key={item.testName}
                       className={cn(
-                        "border-b border-border/50 last:border-0 transition-colors",
+                        "border-b border-divider/50 last:border-0 transition-colors",
                         item.status === "drifted" && "bg-rose-500/[0.03]",
                         item.status === "error" && "bg-amber-500/[0.03]"
                       )}
@@ -444,7 +444,7 @@ function DriftContent(props: { project: Project }) {
                         <div>
                           <p className="font-medium text-foreground">{item.testName}</p>
                           {hasBaseline && (
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-default-500">
                               Baseline: {toDateTime(baselines[item.testName])}
                             </p>
                           )}
@@ -456,7 +456,7 @@ function DriftContent(props: { project: Project }) {
                       <td className="py-2.5 pr-4">
                         <SimilarityBar value={item.similarityScore} />
                       </td>
-                      <td className="py-2.5 pr-4 text-xs tabular-nums text-muted-foreground">
+                      <td className="py-2.5 pr-4 text-xs tabular-nums text-default-500">
                         {toDateTime(item.createdAt)}
                       </td>
                       <td className="py-2.5 text-right">

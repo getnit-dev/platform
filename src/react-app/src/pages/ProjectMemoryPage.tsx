@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { EmptyState, Panel } from "../components/ui";
 import { api, ApiError, type CoverageReport, type MemoryApiResponse, type Project } from "../lib/api";
 import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
@@ -15,6 +15,11 @@ interface MemoryEntry {
   failedApproaches: string[];
 }
 
+interface InsightsData {
+  memoryGrowth: Array<{ date: string; patternCount: number; failedCount: number }>;
+  passRateTrend: Array<{ date: string; passRate: number | null }>;
+}
+
 interface MemoryState {
   loading: boolean;
   patterns: string[];
@@ -22,6 +27,7 @@ interface MemoryState {
   snapshotCount: number;
   latestDate: string | null;
   growth: Array<{ date: string; memoryItems: number; cumulative: number }>;
+  insights: InsightsData | null;
   error: string | null;
 }
 
@@ -116,6 +122,7 @@ async function loadMemoryState(project: Project): Promise<Omit<MemoryState, "loa
         snapshotCount: 1,
         latestDate: null,
         growth: [],
+        insights: null,
         error: null
       };
     }
@@ -149,6 +156,7 @@ async function loadMemoryState(project: Project): Promise<Omit<MemoryState, "loa
       snapshotCount: entries.length,
       latestDate: latestSnapshot?.createdAt ?? null,
       growth,
+      insights: null,
       error: null
     };
   } catch (error) {
@@ -159,6 +167,7 @@ async function loadMemoryState(project: Project): Promise<Omit<MemoryState, "loa
       snapshotCount: 0,
       latestDate: null,
       growth: [],
+      insights: null,
       error: message
     };
   }
@@ -176,6 +185,7 @@ function MemoryContent(props: { project: Project }) {
     snapshotCount: 0,
     latestDate: null,
     growth: [],
+    insights: null,
     error: null
   });
 
@@ -183,13 +193,14 @@ function MemoryContent(props: { project: Project }) {
     let active = true;
 
     async function load() {
-      const result = await loadMemoryState(props.project);
+      const [result, insightsData] = await Promise.all([
+        loadMemoryState(props.project),
+        api.memoryInsights.get({ projectId: props.project.id }).catch(() => null),
+      ]);
 
-      if (!active) {
-        return;
-      }
+      if (!active) return;
 
-      setState({ loading: false, ...result });
+      setState({ loading: false, ...result, insights: insightsData });
     }
 
     void load();
@@ -200,7 +211,7 @@ function MemoryContent(props: { project: Project }) {
   }, [props.project.id]);
 
   if (state.loading) {
-    return <Panel><p className="text-sm text-muted-foreground">Loading memory tab...</p></Panel>;
+    return <Panel><p className="text-sm text-default-500">Loading memory tab...</p></Panel>;
   }
 
   if (state.error) {
@@ -213,7 +224,7 @@ function MemoryContent(props: { project: Project }) {
       {/* ------------------------------------------------------------------ */}
       {/*  Explanation Card                                                   */}
       {/* ------------------------------------------------------------------ */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-[hsl(var(--chart-2)/0.06)] via-[hsl(var(--card))] to-[hsl(var(--chart-4)/0.06)]">
+      <div className="relative overflow-hidden rounded-xl border border-divider bg-gradient-to-br from-[hsl(var(--chart-2)/0.06)] via-[hsl(var(--heroui-content1))] to-[hsl(var(--chart-4)/0.06)]">
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[hsl(var(--chart-2)/0.06)] blur-3xl" />
         <div className="relative flex items-start gap-5 p-6 md:p-8">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--chart-2)/0.12)]">
@@ -223,19 +234,19 @@ function MemoryContent(props: { project: Project }) {
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
               Project Memory
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-1.5 text-sm leading-relaxed text-default-500">
               Project Memory tracks patterns and lessons learned across your test runs.{" "}
               <span className="text-foreground/80 font-medium">nit</span> extracts what worked and
               what failed from each run, building a knowledge base that improves over time.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-default-500">
                 <span className="inline-block h-2 w-2 rounded-full bg-[hsl(var(--chart-2))]" />
                 <span className="font-medium text-foreground tabular-nums">{toNumber(state.snapshotCount)}</span>{" "}
                 snapshots analyzed
               </span>
               {state.latestDate ? (
-                <span className="text-muted-foreground">
+                <span className="text-default-500">
                   Latest: <span className="font-medium text-foreground">{toDateTime(state.latestDate)}</span>
                 </span>
               ) : null}
@@ -280,7 +291,7 @@ function MemoryContent(props: { project: Project }) {
                 </div>
               ))
             ) : (
-              <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-divider px-4 py-8 text-center text-sm text-default-500">
                 No learned patterns present in reports yet.
               </div>
             )}
@@ -318,7 +329,7 @@ function MemoryContent(props: { project: Project }) {
                 </div>
               ))
             ) : (
-              <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-divider px-4 py-8 text-center text-sm text-default-500">
                 No failed approach notes present in reports yet.
               </div>
             )}
@@ -334,7 +345,7 @@ function MemoryContent(props: { project: Project }) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Knowledge Growth</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-default-500">
                 Cumulative memory items extracted over time
               </p>
             </div>
@@ -351,7 +362,7 @@ function MemoryContent(props: { project: Project }) {
                     <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" />
                 <XAxis dataKey="date" tick={TICK_STYLE} />
                 <YAxis tick={TICK_STYLE} allowDecimals={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
@@ -367,6 +378,57 @@ function MemoryContent(props: { project: Project }) {
           </div>
         </Panel>
       ) : null}
+
+      {/* ------------------------------------------------------------------ */}
+      {/*  Memory & Pass Rate Correlation Chart                               */}
+      {/* ------------------------------------------------------------------ */}
+      {state.insights && state.insights.passRateTrend.length > 1 && (() => {
+        // Merge memory growth and pass rate into a single dataset
+        const passMap = new Map(state.insights!.passRateTrend.map(p => [p.date, p.passRate]));
+        const memMap = new Map(state.insights!.memoryGrowth.map(m => [m.date, m.patternCount]));
+        const allDates = Array.from(new Set([...passMap.keys(), ...memMap.keys()])).sort();
+        const merged = allDates.map(date => ({
+          date,
+          patterns: memMap.get(date) ?? null,
+          passRate: passMap.get(date) ?? null,
+        }));
+
+        return (
+          <Panel className="overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Memory & Pass Rate Correlation</h2>
+                <p className="mt-0.5 text-xs text-default-500">
+                  Tracks how growing project memory correlates with test pass rates over time
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-2))]" />
+                  Patterns
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-1))]" />
+                  Pass Rate
+                </span>
+              </div>
+            </div>
+            <div className="mt-5 h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={merged}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" />
+                  <XAxis dataKey="date" tick={TICK_STYLE} />
+                  <YAxis yAxisId="left" tick={TICK_STYLE} allowDecimals={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={TICK_STYLE} domain={[0, 100]} unit="%" />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Line yAxisId="left" type="monotone" dataKey="patterns" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} connectNulls />
+                  <Line yAxisId="right" type="monotone" dataKey="passRate" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
+        );
+      })()}
     </div>
   );
 }

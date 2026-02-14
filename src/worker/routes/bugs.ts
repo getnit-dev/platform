@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
-import { asNonEmptyString, isRecord, parseLimit } from "../lib/validation";
+import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
 interface BugRow {
@@ -11,6 +11,9 @@ interface BugRow {
   functionName: string | null;
   description: string;
   rootCause: string | null;
+  bugType: string | null;
+  confidence: number | null;
+  stackTrace: string | null;
   severity: string;
   status: string;
   githubIssueUrl: string | null;
@@ -53,8 +56,11 @@ bugRoutes.post("/", async (c) => {
         severity,
         status,
         github_issue_url,
-        github_pr_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        github_pr_url,
+        bug_type,
+        confidence,
+        stack_trace
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   )
     .bind(
@@ -68,7 +74,10 @@ bugRoutes.post("/", async (c) => {
       asNonEmptyString(payload.severity) ?? "medium",
       asNonEmptyString(payload.status) ?? "open",
       asNonEmptyString(payload.githubIssueUrl),
-      asNonEmptyString(payload.githubPrUrl)
+      asNonEmptyString(payload.githubPrUrl),
+      asNonEmptyString(payload.bugType),
+      asNumber(payload.confidence),
+      asNonEmptyString(payload.stackTrace)
     )
     .run();
 
@@ -84,6 +93,7 @@ bugRoutes.get("/", async (c) => {
   const projectId = asNonEmptyString(c.req.query("projectId"));
   const status = asNonEmptyString(c.req.query("status"));
   const severity = asNonEmptyString(c.req.query("severity"));
+  const branch = asNonEmptyString(c.req.query("branch"));
   const limit = parseLimit(c.req.query("limit"), 100);
 
   if (projectId && !(await canAccessProject(c, projectId))) {
@@ -99,6 +109,9 @@ bugRoutes.get("/", async (c) => {
       b.function_name AS functionName,
       b.description AS description,
       b.root_cause AS rootCause,
+      b.bug_type AS bugType,
+      b.confidence AS confidence,
+      b.stack_trace AS stackTrace,
       b.severity AS severity,
       b.status AS status,
       b.github_issue_url AS githubIssueUrl,
@@ -129,6 +142,11 @@ bugRoutes.get("/", async (c) => {
   if (severity) {
     sql += " AND b.severity = ?";
     binds.push(severity);
+  }
+
+  if (branch) {
+    sql += " AND b.project_id IN (SELECT DISTINCT project_id FROM coverage_reports WHERE branch = ?)";
+    binds.push(branch);
   }
 
   sql += " ORDER BY b.created_at DESC LIMIT ?";

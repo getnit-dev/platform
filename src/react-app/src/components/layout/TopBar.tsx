@@ -59,15 +59,15 @@ export function TopBar() {
   };
 
   return (
-    <header className="h-12 border-b border-border bg-background px-6 flex items-center justify-between flex-shrink-0">
+    <header className="h-14 border-b border-divider bg-background/80 backdrop-blur-sm px-8 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
       <nav className="flex items-center gap-1.5 text-sm">
         {breadcrumbs.map((crumb, index) => (
           <div key={index} className="flex items-center gap-1.5">
-            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />}
+            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-default-400/50" />}
             {crumb.path ? (
               <Link
                 to={crumb.path}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-default-500 hover:text-foreground transition-colors"
               >
                 {crumb.label}
               </Link>
@@ -78,10 +78,10 @@ export function TopBar() {
         ))}
       </nav>
 
-      <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" onClick={handleSearchClick}>
+      <Button variant="outline" size="sm" className="gap-2 text-default-500" onClick={handleSearchClick}>
         <Search className="h-3.5 w-3.5" />
         <span className="hidden md:inline text-xs">Search</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium md:inline-flex">
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded-md border border-default-200 bg-default-50 px-1.5 font-mono text-[10px] font-medium text-default-400 md:inline-flex">
           <span className="text-xs">&#x2318;</span>K
         </kbd>
       </Button>

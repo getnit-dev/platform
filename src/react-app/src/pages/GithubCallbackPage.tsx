@@ -45,7 +45,7 @@ export function GithubCallbackPage(props: { onAuthenticated: (user: DashboardUse
       <Panel className="w-full max-w-md text-center">
         <p className="text-xs font-semibold text-primary">GitHub OAuth</p>
         <p className="mt-3 text-lg font-semibold">Finalizing sign-in…</p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-default-500">
           {error ?? "Setting up your dashboard session."}
         </p>
       </Panel>

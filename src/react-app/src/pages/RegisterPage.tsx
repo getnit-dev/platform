@@ -38,11 +38,11 @@ export function RegisterPage() {
     <div className="relative grid min-h-screen place-items-center px-4 py-10 bg-background">
       {/* Soft gradient blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/3 right-0 h-[60%] w-[50%] rounded-full bg-primary/8 blur-[100px]" />
-        <div className="absolute bottom-0 left-0 h-[40%] w-[40%] rounded-full bg-primary/5 blur-[80px]" />
+        <div className="absolute -top-1/3 right-0 h-[60%] w-[50%] rounded-full bg-primary/6 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-[40%] w-[40%] rounded-full bg-secondary/4 blur-[100px]" />
       </div>
 
-      <Card className="relative w-full max-w-md shadow-lg">
+      <Card className="relative w-full max-w-md shadow-xl">
         <CardHeader className="space-y-4 text-center pb-4">
           <div className="flex items-center justify-center gap-2">
             <img src="/favicon.svg" alt="nit" className="w-12 h-12" />
@@ -96,8 +96,8 @@ export function RegisterPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-                <p className="text-sm text-destructive">{error}</p>
+              <div className="rounded-lg bg-danger/10 border border-danger/20 p-3">
+                <p className="text-sm text-danger">{error}</p>
               </div>
             )}
 
@@ -106,7 +106,7 @@ export function RegisterPage() {
             </Button>
           </form>
 
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-center text-sm text-default-500">
             Already have an account?{" "}
             <Link
               to="/login"

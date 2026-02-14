@@ -147,6 +147,8 @@ export const coverageReports = sqliteTable("coverage_reports", {
   executionTimeMs: integer("execution_time_ms"),
   executionEnvironment: text("execution_environment"),
   runMetadata: text("run_metadata"),
+  prNumber: integer("pr_number"),
+  prUrl: text("pr_url"),
   createdAt: text("created_at").notNull().default(now)
 }, (table) => ({
   coverageProjectIndex: index("idx_coverage_project").on(table.projectId, table.createdAt),
@@ -185,6 +187,9 @@ export const bugs = sqliteTable("bugs", {
   status: text("status").notNull().default("open"),
   githubIssueUrl: text("github_issue_url"),
   githubPrUrl: text("github_pr_url"),
+  bugType: text("bug_type"),
+  confidence: real("confidence"),
+  stackTrace: text("stack_trace"),
   createdAt: text("created_at").notNull().default(now),
   resolvedAt: text("resolved_at")
 }, (table) => ({
@@ -242,39 +247,6 @@ export const usageDaily = sqliteTable("usage_daily", {
   )
 }));
 
-export const alertConfigs = sqliteTable("alert_configs", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  slackWebhook: text("slack_webhook"),
-  emailThresholdUsd: real("email_threshold_usd"),
-  budgetAlertPercent: real("budget_alert_percent"),
-  emailRecipients: text("email_recipients"),
-  resendApiKey: text("resend_api_key"),
-  emailFromAddress: text("email_from_address"),
-  createdAt: text("created_at").notNull().default(now),
-  updatedAt: text("updated_at").notNull().default(now)
-}, (table) => ({
-  alertConfigsProjectUnique: uniqueIndex("uq_alert_configs_project").on(table.projectId)
-}));
-
-export const alertHistory = sqliteTable("alert_history", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  alertType: text("alert_type").notNull(),
-  message: text("message").notNull(),
-  threshold: real("threshold"),
-  currentValue: real("current_value"),
-  sent: integer("sent", { mode: "boolean" }).notNull().default(false),
-  sentAt: text("sent_at"),
-  error: text("error"),
-  createdAt: text("created_at").notNull().default(now)
-}, (table) => ({
-  alertHistoryProjectIndex: index("idx_alert_history_project").on(table.projectId, table.createdAt)
-}));
 
 export const platformApiKeys = sqliteTable("platform_api_keys", {
   id: text("id").primaryKey(),
@@ -329,6 +301,181 @@ export const packageMemoryTable = sqliteTable("package_memory", {
   packageMemoryProjectPkgUnique: uniqueIndex("uq_package_memory_project_pkg").on(table.projectId, table.packageName)
 }));
 
+export const securityFindings = sqliteTable("security_findings", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  runId: text("run_id"),
+  vulnerabilityType: text("vulnerability_type").notNull(),
+  severity: text("severity").notNull(),
+  filePath: text("file_path").notNull(),
+  lineNumber: integer("line_number"),
+  functionName: text("function_name"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  remediation: text("remediation"),
+  confidence: real("confidence"),
+  cweId: text("cwe_id"),
+  evidence: text("evidence"),
+  detectionMethod: text("detection_method"),
+  status: text("status").notNull().default("open"),
+  resolvedAt: text("resolved_at"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  securityProjectIndex: index("idx_security_project").on(table.projectId, table.createdAt)
+}));
+
+export const riskScores = sqliteTable("risk_scores", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  runId: text("run_id"),
+  filePath: text("file_path").notNull(),
+  overallScore: real("overall_score"),
+  complexityScore: real("complexity_score"),
+  coverageScore: real("coverage_score"),
+  recencyScore: real("recency_score"),
+  criticalityScore: real("criticality_score"),
+  level: text("level"),
+  criticalityDomains: text("criticality_domains"),
+  avgComplexity: real("avg_complexity"),
+  coveragePercentage: real("coverage_percentage"),
+  functionCount: integer("function_count"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  riskProjectIndex: index("idx_risk_project").on(table.projectId, table.createdAt)
+}));
+
+export const coverageGaps = sqliteTable("coverage_gaps", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  runId: text("run_id"),
+  filePath: text("file_path").notNull(),
+  functionName: text("function_name").notNull(),
+  lineNumber: integer("line_number"),
+  endLine: integer("end_line"),
+  coveragePercentage: real("coverage_percentage"),
+  complexity: integer("complexity"),
+  isPublic: integer("is_public", { mode: "boolean" }),
+  priority: text("priority"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  gapsProjectIndex: index("idx_gaps_project").on(table.projectId, table.createdAt),
+  gapsProjectRunIndex: index("idx_gaps_project_run").on(table.projectId, table.runId)
+}));
+
+export const bugFixes = sqliteTable("bug_fixes", {
+  id: text("id").primaryKey(),
+  bugId: text("bug_id")
+    .notNull()
+    .references(() => bugs.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  patch: text("patch"),
+  explanation: text("explanation"),
+  confidence: real("confidence"),
+  safetyNotes: text("safety_notes"),
+  verificationStatus: text("verification_status"),
+  r2Key: text("r2_key"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  fixesBugIndex: index("idx_fixes_bug").on(table.bugId),
+  fixesProjectIndex: index("idx_fixes_project").on(table.projectId, table.createdAt)
+}));
+
+export const routes = sqliteTable("routes", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  runId: text("run_id"),
+  path: text("path").notNull(),
+  routeType: text("route_type"),
+  methods: text("methods"),
+  handlerFile: text("handler_file"),
+  handlerName: text("handler_name"),
+  handlerStartLine: integer("handler_start_line"),
+  handlerEndLine: integer("handler_end_line"),
+  params: text("params"),
+  framework: text("framework"),
+  middleware: text("middleware"),
+  authRequired: integer("auth_required", { mode: "boolean" }),
+  coveragePercentage: real("coverage_percentage"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  routesProjectIndex: index("idx_routes_project").on(table.projectId, table.createdAt)
+}));
+
+export const activityLog = sqliteTable("activity_log", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  source: text("source"),
+  summary: text("summary"),
+  metadata: text("metadata"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  activityProjectIndex: index("idx_activity_project").on(table.projectId, table.createdAt)
+}));
+
+export const docCoverage = sqliteTable("doc_coverage", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  runId: text("run_id"),
+  filePath: text("file_path").notNull(),
+  functionName: text("function_name"),
+  hasDocstring: integer("has_docstring", { mode: "boolean" }),
+  isStale: integer("is_stale", { mode: "boolean" }),
+  docFramework: text("doc_framework"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  docProjectIndex: index("idx_doc_project").on(table.projectId, table.createdAt)
+}));
+
+export const promptRecords = sqliteTable("prompt_records", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  sessionId: text("session_id"),
+  model: text("model").notNull(),
+  messages: text("messages").notNull(), // JSON array
+  temperature: real("temperature"),
+  maxTokens: integer("max_tokens"),
+  metadata: text("metadata"), // JSON object
+  responseText: text("response_text"),
+  promptTokens: integer("prompt_tokens"),
+  completionTokens: integer("completion_tokens"),
+  totalTokens: integer("total_tokens"),
+  durationMs: integer("duration_ms"),
+  // Lineage
+  sourceFile: text("source_file"),
+  templateName: text("template_name"),
+  builderName: text("builder_name"),
+  framework: text("framework"),
+  contextTokens: integer("context_tokens"),
+  // Outcome
+  outcome: text("outcome").default("pending"),
+  validationAttempts: integer("validation_attempts").default(0),
+  errorMessage: text("error_message"),
+  comparisonGroupId: text("comparison_group_id"),
+  createdAt: text("created_at").notNull().default(now)
+}, (table) => ({
+  promptProjectIndex: index("idx_prompt_project").on(table.projectId, table.createdAt),
+  promptModelIndex: index("idx_prompt_model").on(table.model),
+  promptTemplateIndex: index("idx_prompt_template").on(table.templateName),
+  promptComparisonIndex: index("idx_prompt_comparison").on(table.comparisonGroupId)
+}));
+
 export const schema = {
   users,
   accounts,
@@ -341,9 +488,15 @@ export const schema = {
   bugs,
   usageEvents,
   usageDaily,
-  alertConfigs,
-  alertHistory,
   platformApiKeys,
   projectMemory,
-  packageMemoryTable
+  packageMemoryTable,
+  securityFindings,
+  riskScores,
+  coverageGaps,
+  bugFixes,
+  routes,
+  activityLog,
+  docCoverage,
+  promptRecords
 };

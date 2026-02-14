@@ -1,6 +1,5 @@
 import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
-import { checkAlerts } from "./lib/alerting";
 import { handleAuthRequest } from "./lib/auth";
 import { aggregateDriftDaily, cleanupDriftData } from "./lib/drift-rollup";
 import { wrapWithSentry } from "./lib/sentry";
@@ -9,14 +8,21 @@ import { authMiddleware } from "./middleware/auth";
 import { corsMiddleware } from "./middleware/cors";
 import { flexAuthMiddleware } from "./middleware/flex-auth";
 import { sentryMiddleware } from "./middleware/sentry";
-import { alertConfigRoutes } from "./routes/alert-config";
+import { activityRoutes } from "./routes/activity";
 import { bugRoutes } from "./routes/bugs";
+import { coverageGapRoutes } from "./routes/coverage-gaps";
+import { docCoverageRoutes } from "./routes/doc-coverage";
 import { driftRoutes } from "./routes/drift";
+import { fixRoutes } from "./routes/fixes";
 import { llmUsageRoutes } from "./routes/llm-usage";
 import { platformKeyRoutes } from "./routes/platform-keys";
+import { promptRoutes } from "./routes/prompts";
 import { projectRoutes } from "./routes/projects";
 import { memoryRoutes } from "./routes/memory";
 import { reportRoutes } from "./routes/reports";
+import { riskRoutes } from "./routes/risk";
+import { routeDiscoveryRoutes } from "./routes/routes-discovery";
+import { securityRoutes } from "./routes/security";
 import { uploadRoutes } from "./routes/upload";
 import { usageIngestRoutes } from "./routes/usage-ingest";
 import { webhookRoutes } from "./routes/webhooks";
@@ -40,15 +46,19 @@ app.all("/api/auth/*", (c) => {
 for (const path of [
   "/api/projects",
   "/api/llm-usage",
-  "/api/alert-config",
-  "/api/platform-keys"
+  "/api/platform-keys",
+  "/api/activity"
 ]) {
   app.use(path, authMiddleware);
   app.use(`${path}/*`, authMiddleware);
 }
 
 // Flex auth (API key OR session) for routes used by both CLI and dashboard
-for (const path of ["/api/v1/reports", "/api/v1/upload", "/api/v1/drift", "/api/v1/bugs", "/api/v1/memory"]) {
+for (const path of [
+  "/api/v1/reports", "/api/v1/upload", "/api/v1/drift", "/api/v1/bugs", "/api/v1/memory",
+  "/api/v1/coverage-gaps", "/api/v1/security", "/api/v1/risk",
+  "/api/v1/fixes", "/api/v1/routes", "/api/v1/doc-coverage", "/api/v1/prompts"
+]) {
   app.use(path, flexAuthMiddleware);
   app.use(`${path}/*`, flexAuthMiddleware);
 }
@@ -73,10 +83,17 @@ app.route("/api/v1/drift", driftRoutes);
 app.route("/api/v1/bugs", bugRoutes);
 app.route("/api/v1/memory", memoryRoutes);
 app.route("/api/v1/upload", uploadRoutes);
+app.route("/api/v1/coverage-gaps", coverageGapRoutes);
+app.route("/api/v1/security", securityRoutes);
+app.route("/api/v1/risk", riskRoutes);
+app.route("/api/v1/fixes", fixRoutes);
+app.route("/api/v1/routes", routeDiscoveryRoutes);
+app.route("/api/v1/doc-coverage", docCoverageRoutes);
+app.route("/api/v1/prompts", promptRoutes);
 app.route("/api/projects", projectRoutes);
 app.route("/api/webhooks", webhookRoutes);
 app.route("/api/llm-usage", llmUsageRoutes);
-app.route("/api/alert-config", alertConfigRoutes);
+app.route("/api/activity", activityRoutes);
 app.route("/api/platform-keys", platformKeyRoutes);
 
 const worker: ExportedHandler<AppBindings> = {
@@ -117,8 +134,9 @@ const worker: ExportedHandler<AppBindings> = {
       DRIFT_RETENTION_DAYS: env.DRIFT_RETENTION_DAYS
     });
 
-    // Check and send alerts
-    await checkAlerts({ DB: env.DB });
+    // Cleanup activity log (keep 90 days)
+    await env.DB.prepare("DELETE FROM activity_log WHERE created_at < datetime('now', '-90 days')").run().catch(() => {});
+
   }
 };
 

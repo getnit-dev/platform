@@ -15,6 +15,10 @@ import { ProjectMemoryPage } from "./pages/ProjectMemoryPage";
 import { ProjectSettingsPage } from "./pages/ProjectSettingsPage";
 import { ProjectUsagePage } from "./pages/ProjectUsagePage";
 import { ProjectCoveragePage } from "./pages/ProjectCoveragePage";
+import { ProjectSecurityPage } from "./pages/ProjectSecurityPage";
+import { ProjectPRsPage } from "./pages/ProjectPRsPage";
+import { ProjectRoutesPage } from "./pages/ProjectRoutesPage";
+import { ProjectPromptsPage } from "./pages/ProjectPromptsPage";
 import { ProjectsOverviewPage } from "./pages/ProjectsOverviewPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { Card, CardContent } from "./components/ui/card";
@@ -29,8 +33,8 @@ function LoadingScreen() {
     <div className="grid min-h-screen place-items-center px-4 bg-background">
       <Card className="w-full max-w-md">
         <CardContent className="p-6 text-center">
-          <p className="mono text-xs uppercase tracking-widest text-accent">nit platform</p>
-          <p className="mt-3 text-sm text-muted-foreground">Loading dashboard context…</p>
+          <p className="mono text-xs uppercase tracking-widest text-primary">nit platform</p>
+          <p className="mt-3 text-sm text-default-500">Loading dashboard context…</p>
         </CardContent>
       </Card>
     </div>
@@ -131,8 +135,12 @@ export function App() {
           <Route path="/projects/:projectId/runs" element={<ProjectRunsPage />} />
           <Route path="/projects/:projectId/bugs" element={<ProjectBugsPage />} />
           <Route path="/projects/:projectId/coverage" element={<ProjectCoveragePage />} />
+          <Route path="/projects/:projectId/prs" element={<ProjectPRsPage />} />
+          <Route path="/projects/:projectId/routes" element={<ProjectRoutesPage />} />
+          <Route path="/projects/:projectId/security" element={<ProjectSecurityPage />} />
           <Route path="/projects/:projectId/drift" element={<ProjectDriftPage />} />
           <Route path="/projects/:projectId/memory" element={<ProjectMemoryPage />} />
+          <Route path="/projects/:projectId/prompts" element={<ProjectPromptsPage />} />
           <Route path="/projects/:projectId/usage" element={<ProjectUsagePage />} />
           <Route path="/projects/:projectId/settings" element={<ProjectSettingsPage />} />
         </Route>

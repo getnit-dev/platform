@@ -26,7 +26,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme;
 
       setResolvedTheme(resolved);
-      root.setAttribute("data-theme", resolved);
+      root.classList.toggle("dark", resolved === "dark");
+      root.classList.toggle("light", resolved === "light");
     }
 
     updateResolvedTheme();

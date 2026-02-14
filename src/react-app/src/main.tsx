@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { HeroUIProvider } from "@heroui/react";
 import { ThemeProvider } from "./lib/theme-context";
 import { initSentry, Sentry } from "./lib/sentry";
 import { App } from "./App";
@@ -25,11 +26,13 @@ createRoot(rootElement).render(
       )}
       showDialog={false}
     >
-      <ThemeProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ThemeProvider>
+      <HeroUIProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ThemeProvider>
+      </HeroUIProvider>
     </Sentry.ErrorBoundary>
   </StrictMode>
 );

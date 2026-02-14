@@ -177,6 +177,8 @@ export interface CoverageReport {
   executionTimeMs: number | null;
   executionEnvironment: string | null;
   runMetadata: string | null;
+  prNumber: number | null;
+  prUrl: string | null;
   createdAt: string;
 }
 
@@ -211,6 +213,9 @@ export interface Bug {
   status: string;
   githubIssueUrl: string | null;
   githubPrUrl: string | null;
+  bugType: string | null;
+  confidence: number | null;
+  stackTrace: string | null;
   createdAt: string;
   resolvedAt: string | null;
 }
@@ -290,6 +295,157 @@ export interface MemoryApiResponse {
   }>;
 }
 
+export interface SecurityFinding {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  vulnerabilityType: string;
+  severity: string;
+  filePath: string;
+  lineNumber: number | null;
+  functionName: string | null;
+  title: string;
+  description: string;
+  remediation: string | null;
+  confidence: number | null;
+  cweId: string | null;
+  evidence: string | null;
+  detectionMethod: string | null;
+  status: string;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+export interface RiskScore {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  filePath: string;
+  overallScore: number | null;
+  complexityScore: number | null;
+  coverageScore: number | null;
+  recencyScore: number | null;
+  criticalityScore: number | null;
+  level: string | null;
+  criticalityDomains: string | null;
+  avgComplexity: number | null;
+  coveragePercentage: number | null;
+  functionCount: number | null;
+  createdAt: string;
+}
+
+export interface CoverageGap {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  filePath: string;
+  functionName: string;
+  lineNumber: number | null;
+  endLine: number | null;
+  coveragePercentage: number | null;
+  complexity: number | null;
+  isPublic: boolean | null;
+  priority: string | null;
+  createdAt: string;
+}
+
+export interface BugFix {
+  id: string;
+  bugId: string;
+  projectId: string;
+  patch: string | null;
+  explanation: string | null;
+  confidence: number | null;
+  safetyNotes: string | null;
+  verificationStatus: string | null;
+  r2Key: string | null;
+  createdAt: string;
+}
+
+export interface RouteInfo {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  path: string;
+  routeType: string | null;
+  methods: string | null;
+  handlerFile: string | null;
+  handlerName: string | null;
+  handlerStartLine: number | null;
+  handlerEndLine: number | null;
+  params: string | null;
+  framework: string | null;
+  middleware: string | null;
+  authRequired: boolean | null;
+  coveragePercentage: number | null;
+  createdAt: string;
+}
+
+export interface ActivityEvent {
+  id: string;
+  projectId: string;
+  eventType: string;
+  source: string | null;
+  summary: string | null;
+  metadata: string | null;
+  createdAt: string;
+  projectName: string | null;
+}
+
+export interface DocCoverageEntry {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  filePath: string;
+  functionName: string | null;
+  hasDocstring: boolean;
+  isStale: boolean;
+  docFramework: string | null;
+  createdAt: string;
+}
+
+export interface BranchStats {
+  branch: string;
+  runCount: number;
+  avgCoverage: number | null;
+  lastRun: string;
+}
+
+export interface PromptRecord {
+  id: string;
+  projectId: string;
+  sessionId: string | null;
+  model: string;
+  messages: string;
+  temperature: number | null;
+  maxTokens: number | null;
+  metadata: string | null;
+  responseText: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  durationMs: number | null;
+  sourceFile: string | null;
+  templateName: string | null;
+  builderName: string | null;
+  framework: string | null;
+  contextTokens: number | null;
+  outcome: string;
+  validationAttempts: number;
+  errorMessage: string | null;
+  comparisonGroupId: string | null;
+  createdAt: string;
+}
+
+export interface PromptAnalyticsSummary {
+  totalPrompts: number;
+  totalTokens: number;
+  avgDurationMs: number | null;
+  successRate: number;
+  byModel: Record<string, { count: number; successRate: number; avgTokens: number }>;
+  byTemplate: Record<string, { count: number; successRate: number; avgTokens: number }>;
+}
+
 export const api = {
   auth: {
     register: (input: { name: string; email: string; password: string; callbackURL?: string }) =>
@@ -345,7 +501,7 @@ export const api = {
   },
 
   reports: {
-    list: (query?: { projectId?: string; limit?: number }) =>
+    list: (query?: { projectId?: string; branch?: string; limit?: number }) =>
       request<{ reports: CoverageReport[] }>("/api/v1/reports", {
         query
       }),
@@ -381,7 +537,7 @@ export const api = {
   },
 
   bugs: {
-    list: (query?: { projectId?: string; status?: string; severity?: string; limit?: number }) =>
+    list: (query?: { projectId?: string; branch?: string; status?: string; severity?: string; limit?: number }) =>
       request<{ bugs: Bug[] }>("/api/v1/bugs", {
         query
       }),
@@ -485,39 +641,6 @@ export const api = {
 
   health: () => request<{ status: string; service: string }>("/api/health"),
 
-  alertConfig: {
-    get: (projectId: string) =>
-      request<{
-        config: {
-          id: string | null;
-          projectId: string;
-          slackWebhook: string | null;
-          slackWebhookConfigured: boolean;
-          emailThresholdUsd: number | null;
-          budgetAlertPercent: number | null;
-          emailRecipients: string | null;
-          resendApiKey: string | null;
-          resendApiKeyConfigured: boolean;
-          emailFromAddress: string | null;
-          createdAt: string | null;
-          updatedAt: string | null;
-        };
-      }>(`/api/alert-config/${projectId}`),
-
-    update: (projectId: string, config: {
-      slackWebhook?: string | null;
-      emailThresholdUsd?: number | null;
-      budgetAlertPercent?: number | null;
-      emailRecipients?: string | null;
-      resendApiKey?: string | null;
-      emailFromAddress?: string | null;
-    }) =>
-      request<{ success: boolean }>(`/api/alert-config/${projectId}`, {
-        method: "PUT",
-        body: config
-      })
-  },
-
   platformKeys: {
     list: (query?: { projectId?: string }) =>
       request<{ keys: PlatformApiKey[] }>("/api/platform-keys", {
@@ -543,5 +666,133 @@ export const api = {
       request<{ deleted: boolean }>(`/api/platform-keys/${keyId}`, {
         method: "DELETE"
       })
-  }
+  },
+
+  security: {
+    list: (query?: { projectId?: string; status?: string; severity?: string; vulnerabilityType?: string; limit?: number }) =>
+      request<{ findings: SecurityFinding[] }>("/api/v1/security", { query }),
+
+    summary: (query?: { projectId?: string }) =>
+      request<{ totalFindings: number; openFindings: number; bySeverity: Record<string, number>; byType: Array<{ type: string; count: number }>; recentTrend: Array<{ date: string; count: number }> }>("/api/v1/security/summary", { query }),
+
+    update: (findingId: string, input: { status: string }) =>
+      request<{ updated: boolean }>(`/api/v1/security/${findingId}`, { method: "PATCH", body: input })
+  },
+
+  risk: {
+    list: (query?: { projectId?: string; level?: string; limit?: number }) =>
+      request<{ files: RiskScore[] }>("/api/v1/risk", { query }),
+
+    summary: (query?: { projectId?: string }) =>
+      request<{ avgScore: number; byLevel: Record<string, number>; topRiskyFiles: Array<{ filePath: string; overallScore: number; level: string }>; criticalityDomains: string[] }>("/api/v1/risk/summary", { query })
+  },
+
+  coverageGaps: {
+    list: (query?: { projectId?: string; runId?: string; priority?: string; filePath?: string; limit?: number }) =>
+      request<{ gaps: CoverageGap[] }>("/api/v1/coverage-gaps", { query }),
+
+    summary: (query?: { projectId?: string; runId?: string }) =>
+      request<{ totalGaps: number; byPriority: Record<string, number>; untestedFiles: number; topFiles: Array<{ filePath: string; gapCount: number; avgComplexity: number }> }>("/api/v1/coverage-gaps/summary", { query })
+  },
+
+  fixes: {
+    list: (query?: { projectId?: string; bugId?: string; limit?: number }) =>
+      request<{ fixes: BugFix[] }>("/api/v1/fixes", { query }),
+
+    get: (fixId: string) =>
+      request<{ fix: BugFix; fixedCode: string | null }>(`/api/v1/fixes/${fixId}`)
+  },
+
+  routeDiscovery: {
+    list: (query?: { projectId?: string; routeType?: string; framework?: string; limit?: number }) =>
+      request<{ routes: RouteInfo[] }>("/api/v1/routes", { query }),
+
+    summary: (query?: { projectId?: string }) =>
+      request<{ totalRoutes: number; coveredRoutes: number; byType: Record<string, number>; uncoveredRoutes: Array<{ path: string; methods: string }> }>("/api/v1/routes/summary", { query })
+  },
+
+  activity: {
+    list: (query?: { projectId?: string; eventType?: string; days?: number; limit?: number }) =>
+      request<{ events: ActivityEvent[] }>("/api/activity", { query })
+  },
+
+  docCoverage: {
+    list: (query?: { projectId?: string; runId?: string; isStale?: string; limit?: number }) =>
+      request<{ files: DocCoverageEntry[] }>("/api/v1/doc-coverage", { query }),
+
+    summary: (query?: { projectId?: string }) =>
+      request<{ totalFiles: number; documented: number; undocumented: number; stale: number; coveragePercent: number }>("/api/v1/doc-coverage/summary", { query })
+  },
+
+  branches: {
+    list: (query?: { projectId?: string }) =>
+      request<{ branches: BranchStats[] }>("/api/v1/reports/branches", { query })
+  },
+
+  reportCompare: {
+    compare: (query: { projectId: string; runIdA: string; runIdB: string }) =>
+      request<{ runA: unknown; runB: unknown; delta: { coverageDelta: number; testsDelta: number; bugsDelta: number; costDelta: number; timeDelta: number } }>("/api/v1/reports/compare", { query })
+  },
+
+  prImpact: {
+    get: (prNumber: number, query: { projectId: string }) =>
+      request<{ reports: unknown[]; bugs: unknown[]; summary: { testsAdded: number; bugsFound: number; totalCost: number; runs: number; coverageDelta: number } }>(`/api/v1/reports/pr/${prNumber}`, { query })
+  },
+
+  memoryInsights: {
+    get: (query: { projectId: string }) =>
+      request<{ memoryGrowth: Array<{ date: string; patternCount: number; failedCount: number }>; passRateTrend: Array<{ date: string; passRate: number | null }>; totalPatterns: number; totalFailed: number }>("/api/v1/memory/insights", { query })
+  },
+
+  prompts: {
+    list: (query: { projectId: string; limit?: number; model?: string; template?: string; outcome?: string }) =>
+      request<{ records: PromptRecord[] }>("/api/v1/prompts", { query }),
+
+    analytics: async (query: { projectId: string }): Promise<PromptAnalyticsSummary> => {
+      const raw = await request<{
+        totalRecords: number;
+        successCount: number;
+        failedCount: number;
+        successRate: number;
+        byModel: Array<{ model: string; count: number; totalTokens: number | null; avgDurationMs: number | null }>;
+        byTemplate: Array<{ templateName: string; count: number; successes: number; failures: number; avgDurationMs: number | null }>;
+      }>("/api/v1/prompts/analytics", { query });
+
+      let totalTokens = 0;
+      let weightedDuration = 0;
+      let durationCount = 0;
+      const byModel: Record<string, { count: number; successRate: number; avgTokens: number }> = {};
+
+      for (const row of raw.byModel) {
+        totalTokens += row.totalTokens ?? 0;
+        if (row.avgDurationMs != null) {
+          weightedDuration += row.avgDurationMs * row.count;
+          durationCount += row.count;
+        }
+        byModel[row.model] = {
+          count: row.count,
+          successRate: raw.successRate,
+          avgTokens: row.count > 0 ? Math.round((row.totalTokens ?? 0) / row.count) : 0,
+        };
+      }
+
+      const byTemplate: Record<string, { count: number; successRate: number; avgTokens: number }> = {};
+      for (const row of raw.byTemplate) {
+        byTemplate[row.templateName] = {
+          count: row.count,
+          successRate: row.count > 0 ? row.successes / row.count : 0,
+          avgTokens: 0,
+        };
+      }
+
+      return {
+        totalPrompts: raw.totalRecords,
+        totalTokens,
+        avgDurationMs: durationCount > 0 ? weightedDuration / durationCount : null,
+        successRate: raw.successRate,
+        byModel,
+        byTemplate,
+      };
+    },
+  },
 };

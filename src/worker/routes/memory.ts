@@ -449,6 +449,80 @@ memoryRoutes.get("/", async (c) => {
   });
 });
 
+/* ---- GET /api/v1/memory/insights — Memory correlation data --------------- */
+
+memoryRoutes.get("/insights", async (c) => {
+  const actor = getRequestActor(c);
+  if (!actor) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const queryProjectId = asNonEmptyString(c.req.query("projectId"));
+  if (!queryProjectId) {
+    return c.json({ error: "projectId query parameter is required" }, 400);
+  }
+
+  if (!(await canAccessProject(c, queryProjectId))) {
+    return c.json({ error: "Project access denied" }, 403);
+  }
+
+  const globalRow = await c.env.DB.prepare(
+    `SELECT known_patterns AS knownPatterns, failed_patterns AS failedPatterns
+     FROM project_memory WHERE project_id = ? LIMIT 1`
+  ).bind(queryProjectId).first<{ knownPatterns: string | null; failedPatterns: string | null }>();
+
+  const knownPatterns = parseJsonArray<KnownPattern>(globalRow?.knownPatterns ?? null);
+  const failedPatterns = parseJsonArray<FailedPattern>(globalRow?.failedPatterns ?? null);
+
+  const passRateRows = await c.env.DB.prepare(
+    `SELECT
+       date(created_at) AS date,
+       CASE WHEN SUM(tests_passed + tests_failed) > 0
+         THEN ROUND(CAST(SUM(tests_passed) AS REAL) / SUM(tests_passed + tests_failed) * 100, 1)
+         ELSE NULL
+       END AS passRate
+     FROM coverage_reports
+     WHERE project_id = ? AND created_at >= datetime('now', '-90 days')
+     GROUP BY date(created_at)
+     ORDER BY date ASC`
+  ).bind(queryProjectId).all<{ date: string; passRate: number | null }>();
+
+  const patternsByDate = new Map<string, { patterns: number; failed: number }>();
+
+  for (const p of knownPatterns) {
+    if (p.last_used) {
+      const date = p.last_used.slice(0, 10);
+      const entry = patternsByDate.get(date) ?? { patterns: 0, failed: 0 };
+      entry.patterns++;
+      patternsByDate.set(date, entry);
+    }
+  }
+  for (const p of failedPatterns) {
+    if (p.timestamp) {
+      const date = p.timestamp.slice(0, 10);
+      const entry = patternsByDate.get(date) ?? { patterns: 0, failed: 0 };
+      entry.failed++;
+      patternsByDate.set(date, entry);
+    }
+  }
+
+  const memoryGrowth: Array<{ date: string; patternCount: number; failedCount: number }> = [];
+  let cumulativePatterns = 0;
+  let cumulativeFailed = 0;
+  for (const [date, counts] of [...patternsByDate.entries()].sort()) {
+    cumulativePatterns += counts.patterns;
+    cumulativeFailed += counts.failed;
+    memoryGrowth.push({ date, patternCount: cumulativePatterns, failedCount: cumulativeFailed });
+  }
+
+  return c.json({
+    memoryGrowth,
+    passRateTrend: passRateRows.results,
+    totalPatterns: knownPatterns.length,
+    totalFailed: failedPatterns.length
+  });
+});
+
 /* ---- DELETE /api/v1/memory — Reset -------------------------------------- */
 
 memoryRoutes.delete("/", async (c) => {

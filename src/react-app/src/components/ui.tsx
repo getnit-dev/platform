@@ -19,7 +19,7 @@ export function EmptyState(props: { title: string; body: string; className?: str
     <Card className={cn("animate-fade-slide", props.className)}>
       <CardContent className="p-10 text-center">
         <p className="text-base font-semibold text-foreground">{props.title}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{props.body}</p>
+        <p className="mt-2 text-sm text-default-500">{props.body}</p>
       </CardContent>
     </Card>
   );
@@ -34,9 +34,9 @@ export function StatCard(props: {
   return (
     <Card className={cn("animate-fade-slide", props.className)}>
       <CardContent className="p-4">
-        <p className="text-xs font-medium text-muted-foreground">{props.label}</p>
-        <p className="mt-1.5 text-2xl font-semibold tracking-tight">{props.value}</p>
-        {props.hint ? <p className="mt-1 text-xs text-muted-foreground">{props.hint}</p> : null}
+        <p className="text-xs font-medium text-default-500">{props.label}</p>
+        <p className="mt-1.5 text-2xl font-bold tracking-tight">{props.value}</p>
+        {props.hint ? <p className="mt-1 text-xs text-default-500">{props.hint}</p> : null}
       </CardContent>
     </Card>
   );
@@ -58,7 +58,7 @@ export function Gauge(props: { value: number; label: string; size?: number }) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="hsl(var(--border))"
+            stroke="hsl(var(--heroui-default-300))"
             strokeWidth={6}
           />
           <circle
@@ -66,7 +66,7 @@ export function Gauge(props: { value: number; label: string; size?: number }) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke="hsl(var(--heroui-primary))"
             strokeWidth={6}
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -78,7 +78,7 @@ export function Gauge(props: { value: number; label: string; size?: number }) {
           <span className="mono text-lg font-semibold">{clamped.toFixed(1)}%</span>
         </div>
       </div>
-      <span className="text-xs font-medium text-muted-foreground">{props.label}</span>
+      <span className="text-xs font-medium text-default-500">{props.label}</span>
     </div>
   );
 }

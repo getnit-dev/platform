@@ -9,8 +9,8 @@ export function AppShell({ user }: { user: DashboardUser }) {
       <NavigationSidebar user={user} />
       <div className="flex-1 flex flex-col ml-60">
         <TopBar />
-        <main className="flex-1 px-6 py-5">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 px-8 py-8">
+          <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>
         </main>

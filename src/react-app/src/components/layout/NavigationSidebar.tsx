@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Bug,
-  TrendingUp,
+  Play,
   Database,
   Zap,
   LogOut,
@@ -11,6 +11,10 @@ import {
   Moon,
   Sun,
   Shield,
+  ShieldAlert,
+  Route,
+  GitPullRequest,
+  MessageSquare,
 } from "lucide-react";
 import type { DashboardUser } from "../../lib/api";
 import { useNavigation } from "../../lib/navigation-context";
@@ -34,8 +38,8 @@ function NavItem({ to, icon, label, end }: NavItemProps) {
         cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
           isActive
-            ? "bg-white/15 text-white shadow-sm"
-            : "text-sidebar-foreground hover:bg-white/8 hover:text-white/90"
+            ? "bg-primary/15 text-primary dark:bg-primary/20 shadow-sm"
+            : "text-default-500 hover:bg-default-100 hover:text-foreground"
         )
       }
     >
@@ -47,7 +51,7 @@ function NavItem({ to, icon, label, end }: NavItemProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+    <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-default-400">
       {children}
     </p>
   );
@@ -64,7 +68,7 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
   }
 
   return (
-    <aside className="w-60 h-screen border-r border-sidebar-border bg-sidebar flex flex-col fixed left-0 top-0">
+    <aside className="w-60 h-screen border-r border-divider bg-background flex flex-col fixed left-0 top-0">
       {/* Logo */}
       <div className="px-5 py-5 flex-shrink-0">
         <NavLink to="/" className="flex items-center gap-2.5 group">
@@ -73,7 +77,7 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
             alt="nit"
             className="w-8 h-8 transition-transform group-hover:scale-105"
           />
-          <span className="text-base font-semibold text-white/90 tracking-tight">
+          <span className="text-base font-semibold text-foreground tracking-tight">
             nit platform
           </span>
         </NavLink>
@@ -90,8 +94,13 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
             <SectionLabel>Project</SectionLabel>
             <NavItem
               to={`/projects/${currentProjectId}/runs`}
-              icon={<TrendingUp className="h-4 w-4" />}
+              icon={<Play className="h-4 w-4" />}
               label="Runs"
+            />
+            <NavItem
+              to={`/projects/${currentProjectId}/prs`}
+              icon={<GitPullRequest className="h-4 w-4" />}
+              label="PRs"
             />
             <NavItem
               to={`/projects/${currentProjectId}/bugs`}
@@ -104,6 +113,16 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
               label="Coverage"
             />
             <NavItem
+              to={`/projects/${currentProjectId}/routes`}
+              icon={<Route className="h-4 w-4" />}
+              label="Routes"
+            />
+            <NavItem
+              to={`/projects/${currentProjectId}/security`}
+              icon={<ShieldAlert className="h-4 w-4" />}
+              label="Security"
+            />
+            <NavItem
               to={`/projects/${currentProjectId}/drift`}
               icon={<Zap className="h-4 w-4" />}
               label="Drift"
@@ -112,6 +131,11 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
               to={`/projects/${currentProjectId}/memory`}
               icon={<Database className="h-4 w-4" />}
               label="Memory"
+            />
+            <NavItem
+              to={`/projects/${currentProjectId}/prompts`}
+              icon={<MessageSquare className="h-4 w-4" />}
+              label="Prompts"
             />
             <NavItem
               to={`/projects/${currentProjectId}/usage`}
@@ -128,18 +152,18 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
       </nav>
 
       {/* User footer */}
-      <div className="px-3 py-3 border-t border-sidebar-border flex-shrink-0">
+      <div className="px-3 py-3 border-t border-divider flex-shrink-0">
         <div className="flex items-center gap-2 px-2 mb-2">
-          <div className="h-7 w-7 rounded-full bg-sidebar-accent/20 text-sidebar-accent flex items-center justify-center text-xs font-semibold flex-shrink-0">
+          <div className="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold flex-shrink-0">
             {(user.name || user.email || "U").charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-white/90 truncate">{user.name || "Account"}</p>
-            <p className="text-[11px] text-sidebar-foreground truncate">{user.email}</p>
+            <p className="text-[13px] font-medium text-foreground truncate">{user.name || "Account"}</p>
+            <p className="text-[11px] text-default-400 truncate">{user.email}</p>
           </div>
           <button
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="h-7 w-7 flex items-center justify-center rounded-lg text-sidebar-foreground hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
+            className="h-7 w-7 flex items-center justify-center rounded-lg text-default-500 hover:bg-default-100 hover:text-foreground transition-colors flex-shrink-0"
             title="Toggle theme"
           >
             {resolvedTheme === "dark" ? (
@@ -151,7 +175,7 @@ export function NavigationSidebar({ user }: { user: DashboardUser }) {
         </div>
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] text-sidebar-foreground hover:bg-white/10 hover:text-white transition-colors"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] text-default-500 hover:bg-default-100 hover:text-foreground transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
           Sign out

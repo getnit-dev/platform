@@ -14,15 +14,15 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.4",
+    "@heroui/react": "^2.8.9",
     "@sentry/cloudflare": "^10.38.0",
     "@sentry/react": "^10.38.0",
     "better-auth": "^1.4.18",
     "better-auth-cloudflare": "^0.2.9",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
     "drizzle-orm": "^0.45.1",
+    "framer-motion": "^12.34.0",
     "hono": "^4.7.2",
     "lucide-react": "^0.563.0",
     "nanoid": "^3.3.11",
@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260208.0",
-    "@sentry/core": "^10.38.0",
     "@eslint/js": "^9.39.2",
+    "@sentry/core": "^10.38.0",
     "@sentry/vite-plugin": "^4.9.1",
     "@tailwindcss/vite": "^4.0.4",
     "@types/node": "^25.2.3",

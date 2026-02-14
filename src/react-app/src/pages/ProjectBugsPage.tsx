@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { EmptyState, Gauge, Panel } from "../components/ui";
 import { Badge } from "../components/ui/badge";
-import { api, ApiError, type Bug, type Project } from "../lib/api";
+import { api, ApiError, type Bug, type BugFix, type Project } from "../lib/api";
 import { TICK_STYLE, TOOLTIP_STYLE } from "../lib/chart-styles";
 import { groupByDate, toDateTime, truncate } from "../lib/format";
 import { cn } from "../lib/utils";
 import { ProjectPageShell } from "./project-shared";
-import { AlertTriangle, CheckCircle2, Bug as BugIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Bug as BugIcon, ChevronDown, ChevronRight, Wrench } from "lucide-react";
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low"] as const;
 
@@ -100,7 +100,7 @@ function SeverityBreakdownBar({ bugs }: { bugs: Bug[] }) {
   return (
     <div className="space-y-2.5">
       {/* The stacked bar */}
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-default-100">
         {segments.map((seg, i) => (
           <div
             key={seg.severity}
@@ -121,9 +121,9 @@ function SeverityBreakdownBar({ bugs }: { bugs: Bug[] }) {
         {segments.map((seg) => (
           <div key={seg.severity} className="flex items-center gap-1.5 text-xs">
             <span className={cn("h-2.5 w-2.5 rounded-sm shrink-0", seg.config.barColor)} />
-            <span className="text-muted-foreground">{seg.config.label}</span>
+            <span className="text-default-500">{seg.config.label}</span>
             <span className="font-semibold tabular-nums">{seg.count}</span>
-            <span className="text-muted-foreground">({seg.pct.toFixed(0)}%)</span>
+            <span className="text-default-500">({seg.pct.toFixed(0)}%)</span>
           </div>
         ))}
       </div>
@@ -153,7 +153,7 @@ function OpenResolvedSplit({ openCount, resolvedCount }: { openCount: number; re
 
       {/* Ratio divider bar */}
       <div className="flex flex-col items-center justify-center w-16 py-3">
-        <div className="flex flex-col h-full w-2.5 rounded-full overflow-hidden bg-muted">
+        <div className="flex flex-col h-full w-2.5 rounded-full overflow-hidden bg-default-100">
           <div
             className="bg-amber-500 transition-all duration-500 w-full"
             style={{ height: `${openPct}%` }}
@@ -181,6 +181,58 @@ function OpenResolvedSplit({ openCount, resolvedCount }: { openCount: number; re
 /*  Bug Row (compact)                                                  */
 /* ------------------------------------------------------------------ */
 
+function FixDetailsPanel({ bugId }: { bugId: string }) {
+  const [fixes, setFixes] = useState<BugFix[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const res = await api.fixes.list({ bugId });
+        if (active) setFixes(res.fixes);
+      } catch { /* ignore */ }
+      if (active) setLoading(false);
+    }
+    void load();
+    return () => { active = false; };
+  }, [bugId]);
+
+  if (loading) return <p className="px-4 py-2 text-xs text-default-500">Loading fixes...</p>;
+  if (fixes.length === 0) return <p className="px-4 py-2 text-xs text-default-500">No fixes generated for this bug.</p>;
+
+  return (
+    <div className="space-y-3 px-4 pb-3">
+      {fixes.map(fix => (
+        <div key={fix.id} className="rounded-lg border border-divider bg-default-100/30 p-3 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Wrench className="h-3.5 w-3.5 text-default-500" />
+            <span className="text-xs font-semibold">Fix</span>
+            {fix.confidence !== null && (
+              <Badge variant="outline" className="text-[10px]">{(fix.confidence * 100).toFixed(0)}% confidence</Badge>
+            )}
+            {fix.verificationStatus && (
+              <Badge variant={fix.verificationStatus === "passed" ? "success" : fix.verificationStatus === "failed" ? "destructive" : "secondary"} className="text-[10px]">
+                {fix.verificationStatus}
+              </Badge>
+            )}
+          </div>
+          {fix.explanation && <p className="text-sm text-default-500 leading-relaxed">{fix.explanation}</p>}
+          {fix.patch && (
+            <pre className="rounded-md bg-default-200 px-3 py-2 text-xs overflow-x-auto font-mono whitespace-pre-wrap">{fix.patch}</pre>
+          )}
+          {fix.safetyNotes && (
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1">Safety Notes</p>
+              <p className="text-xs text-default-500">{fix.safetyNotes}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BugRow({
   bug,
   onMarkFixed,
@@ -190,63 +242,77 @@ function BugRow({
   onMarkFixed: (id: string) => void;
   isUpdating: boolean;
 }) {
+  const [showFixes, setShowFixes] = useState(false);
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors">
-      {/* Description + file path */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{truncate(bug.description, 100)}</p>
-        <p className="font-mono text-[11px] text-muted-foreground truncate mt-0.5">{bug.filePath}</p>
+    <div className="border-b border-divider/40 last:border-0">
+      <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-default-100/30 transition-colors">
+        {/* Expand for fixes */}
+        <button onClick={() => setShowFixes(!showFixes)} className="text-default-500 shrink-0">
+          {showFixes ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
+
+        {/* Description + file path */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{truncate(bug.description, 100)}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="font-mono text-[11px] text-default-500 truncate">{bug.filePath}</p>
+            {bug.bugType && <Badge variant="outline" className="text-[9px]">{bug.bugType}</Badge>}
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <Badge
+          variant={bug.status === "open" ? "warning" : "success"}
+          className="shrink-0"
+        >
+          {bug.status}
+        </Badge>
+
+        {/* Date */}
+        <span className="text-[11px] text-default-500 whitespace-nowrap shrink-0 hidden md:block">
+          {toDateTime(bug.createdAt)}
+        </span>
+
+        {/* Action buttons inline */}
+        <div className="flex items-center gap-2 shrink-0">
+          {bug.githubIssueUrl && (
+            <a
+              className="text-xs text-primary hover:underline"
+              href={bug.githubIssueUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Issue
+            </a>
+          )}
+          {bug.githubPrUrl && (
+            <a
+              className="text-xs text-primary hover:underline"
+              href={bug.githubPrUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              PR
+            </a>
+          )}
+          {bug.status === "open" && (
+            <button
+              onClick={() => onMarkFixed(bug.id)}
+              disabled={isUpdating}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+            >
+              {isUpdating ? "Saving..." : "Mark fixed"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Status badge */}
-      <Badge
-        variant={bug.status === "open" ? "warning" : "success"}
-        className="shrink-0"
-      >
-        {bug.status}
-      </Badge>
-
-      {/* Date */}
-      <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0 hidden md:block">
-        {toDateTime(bug.createdAt)}
-      </span>
-
-      {/* Action buttons inline */}
-      <div className="flex items-center gap-2 shrink-0">
-        {bug.githubIssueUrl && (
-          <a
-            className="text-xs text-primary hover:underline"
-            href={bug.githubIssueUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Issue
-          </a>
-        )}
-        {bug.githubPrUrl && (
-          <a
-            className="text-xs text-primary hover:underline"
-            href={bug.githubPrUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            PR
-          </a>
-        )}
-        {bug.status === "open" && (
-          <button
-            onClick={() => onMarkFixed(bug.id)}
-            disabled={isUpdating}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            {isUpdating ? "Saving..." : "Mark fixed"}
-          </button>
-        )}
-      </div>
+      {showFixes && <FixDetailsPanel bugId={bug.id} />}
     </div>
   );
 }
@@ -271,7 +337,7 @@ function SeverityGroup({
   if (bugs.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-lg border border-divider overflow-hidden">
       {/* Colored group header */}
       <div className={cn("flex items-center justify-between px-4 py-2.5 border-b", config.headerBg)}>
         <div className="flex items-center gap-2">
@@ -284,7 +350,7 @@ function SeverityGroup({
       </div>
 
       {/* Bug rows */}
-      <div className="bg-card">
+      <div className="bg-content1">
         {bugs.map((bug) => (
           <BugRow
             key={bug.id}
@@ -368,7 +434,7 @@ function BugsContent(props: { project: Project }) {
   }
 
   if (state.loading) {
-    return <Panel><p className="text-sm text-muted-foreground">Loading bug analytics...</p></Panel>;
+    return <Panel><p className="text-sm text-default-500">Loading bug analytics...</p></Panel>;
   }
 
   if (state.error) {
@@ -376,11 +442,11 @@ function BugsContent(props: { project: Project }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* ---- Severity breakdown bar ---- */}
       {state.bugs.length > 0 && (
         <Panel>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-default-500 mb-3">
             Severity Distribution
           </h2>
           <SeverityBreakdownBar bugs={state.bugs} />
@@ -390,12 +456,12 @@ function BugsContent(props: { project: Project }) {
       {/* ---- Open vs Resolved + Fix Rate ---- */}
       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         {/* Split open/resolved */}
-        <div className="rounded-lg border border-border bg-card">
+        <div className="rounded-lg border border-divider bg-content1">
           <OpenResolvedSplit openCount={openBugs.length} resolvedCount={fixedBugs.length} />
         </div>
 
         {/* Fix rate as circular gauge */}
-        <div className="rounded-lg border border-border bg-card flex items-center justify-center px-8 py-4">
+        <div className="rounded-lg border border-divider bg-content1 flex items-center justify-center px-8 py-4">
           <Gauge value={fixRate} label="Fix Rate" size={110} />
         </div>
       </div>
@@ -406,7 +472,7 @@ function BugsContent(props: { project: Project }) {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mb-3" />
             <p className="text-sm font-medium">No open bugs</p>
-            <p className="text-xs text-muted-foreground mt-1">All discovered bugs in this project have been resolved.</p>
+            <p className="text-xs text-default-500 mt-1">All discovered bugs in this project have been resolved.</p>
           </div>
         </Panel>
       ) : (
@@ -424,14 +490,14 @@ function BugsContent(props: { project: Project }) {
       )}
 
       {/* ---- Discovery Timeline ---- */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-border bg-muted/30">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-lg border border-divider bg-content1 overflow-hidden">
+        <div className="px-5 py-3 border-b border-divider bg-default-100/30">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-default-500">
             Discovery Timeline
           </h2>
         </div>
         <div className="p-5">
-          <div className="h-56">
+          <div className="h-64">
             {timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timeline}>
@@ -441,7 +507,7 @@ function BugsContent(props: { project: Project }) {
                       <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-300))" vertical={false} />
                   <XAxis dataKey="date" tick={TICK_STYLE} axisLine={false} tickLine={false} />
                   <YAxis tick={TICK_STYLE} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
@@ -455,7 +521,7 @@ function BugsContent(props: { project: Project }) {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="grid h-full place-items-center text-sm text-muted-foreground">
+              <div className="grid h-full place-items-center text-sm text-default-500">
                 No bugs discovered yet.
               </div>
             )}

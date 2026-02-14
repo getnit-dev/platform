@@ -1,58 +1,70 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import { Button as HeroButton } from "@heroui/react";
+import type { ButtonProps as HeroButtonProps } from "@heroui/react";
 import { cn } from "../../lib/utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/80",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:bg-destructive/80",
-        outline:
-          "border border-input bg-background text-foreground shadow-sm hover:bg-muted active:bg-muted/80",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:bg-secondary/70",
-        ghost:
-          "text-foreground hover:bg-muted active:bg-muted/80",
-        link:
-          "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-lg px-3 text-xs",
-        lg: "h-10 rounded-lg px-6",
-        icon: "h-9 w-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
+type Variant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+type Size = "default" | "sm" | "lg" | "icon";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color"> {
+  variant?: Variant;
+  size?: Size;
+}
+
+function mapVariant(variant: Variant = "default"): Pick<HeroButtonProps, "color" | "variant"> {
+  switch (variant) {
+    case "default":
+      return { color: "primary", variant: "solid" };
+    case "destructive":
+      return { color: "danger", variant: "solid" };
+    case "outline":
+      return { color: "default", variant: "bordered" };
+    case "secondary":
+      return { color: "default", variant: "flat" };
+    case "ghost":
+      return { color: "default", variant: "light" };
+    case "link":
+      return { color: "primary", variant: "light" };
+  }
+}
+
+function mapSize(size: Size = "default"): HeroButtonProps["size"] {
+  switch (size) {
+    case "sm":
+      return "sm";
+    case "lg":
+      return "lg";
+    case "default":
+    case "icon":
+      return "md";
+  }
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+  ({ className, variant = "default", size = "default", children, disabled, onClick, type, ...rest }, ref) => {
+    const mapped = mapVariant(variant);
+
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <HeroButton
         ref={ref}
-        {...props}
-      />
+        color={mapped.color}
+        variant={mapped.variant}
+        size={mapSize(size)}
+        isIconOnly={size === "icon"}
+        isDisabled={disabled}
+        type={type}
+        onPress={onClick ? () => onClick({} as React.MouseEvent<HTMLButtonElement>) : undefined}
+        className={cn(
+          variant === "link" && "underline-offset-4 hover:underline",
+          className,
+        )}
+        aria-label={rest["aria-label"]}
+      >
+        {children}
+      </HeroButton>
     );
   }
 );
 Button.displayName = "Button";
 
-export { Button, buttonVariants };
+export { Button };

@@ -16,6 +16,8 @@ interface RunsState {
   reports: CoverageReport[];
   expandedRunId: string | null;
   selectedPackageId: string | null;
+  compareMode: boolean;
+  compareSelection: [string, string | null];
   error: string | null;
 }
 
@@ -154,7 +156,7 @@ function TestResult({ passed, total }: { passed: number; total: number }) {
           "h-2 w-2 rounded-full shrink-0",
           allPassed && "bg-emerald-500",
           hasFails && "bg-red-500",
-          total === 0 && "bg-muted-foreground/40"
+          total === 0 && "bg-default-500/40"
         )}
       />
       <span className={cn("font-medium", hasFails && "text-red-600 dark:text-red-400")}>
@@ -172,25 +174,25 @@ function RunDetail({ run }: { run: RunGroup }) {
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <div className="border-t border-border bg-muted/30">
+        <div className="border-t border-divider bg-default-100/30">
           {/* Top detail strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border">
-            <div className="bg-card px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Run Mode</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-divider">
+            <div className="bg-content1 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wider text-default-500 font-medium">Run Mode</p>
               <p className="mt-0.5 text-sm font-semibold">{run.runMode}</p>
             </div>
-            <div className="bg-card px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Avg Coverage</p>
+            <div className="bg-content1 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wider text-default-500 font-medium">Avg Coverage</p>
               <p className="mt-0.5 text-sm font-semibold">{toPercent(run.avgCoverage)}</p>
             </div>
-            <div className="bg-card px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Execution Time</p>
+            <div className="bg-content1 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wider text-default-500 font-medium">Execution Time</p>
               <p className="mt-0.5 text-sm font-semibold">
                 {run.executionTimeMs ? `${(run.executionTimeMs / 1000).toFixed(1)}s` : "n/a"}
               </p>
             </div>
-            <div className="bg-card px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Tests</p>
+            <div className="bg-content1 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wider text-default-500 font-medium">Total Tests</p>
               <p className="mt-0.5 text-sm font-semibold">{toNumber(run.totalTests)}</p>
             </div>
           </div>
@@ -199,18 +201,18 @@ function RunDetail({ run }: { run: RunGroup }) {
             {/* Git context + LLM usage side by side */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* Git context */}
-              <div className="rounded-lg border border-border bg-card p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Git Context</h4>
+              <div className="rounded-lg border border-divider bg-content1 p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-default-500 mb-3">Git Context</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Branch</span>
-                    <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                    <span className="text-default-500">Branch</span>
+                    <code className="font-mono text-xs bg-default-100 px-2 py-0.5 rounded">
                       {run.branch ?? "n/a"}
                     </code>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Commit</span>
-                    <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                    <span className="text-default-500">Commit</span>
+                    <code className="font-mono text-xs bg-default-100 px-2 py-0.5 rounded">
                       {run.commitSha ? truncate(run.commitSha, 16) : "n/a"}
                     </code>
                   </div>
@@ -218,21 +220,21 @@ function RunDetail({ run }: { run: RunGroup }) {
               </div>
 
               {/* LLM usage */}
-              <div className="rounded-lg border border-border bg-card p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">LLM Usage</h4>
+              <div className="rounded-lg border border-divider bg-content1 p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-default-500 mb-3">LLM Usage</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Model</span>
-                    <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                    <span className="text-default-500">Model</span>
+                    <code className="font-mono text-xs bg-default-100 px-2 py-0.5 rounded">
                       {run.llmModel ?? "n/a"}
                     </code>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total Tokens</span>
+                    <span className="text-default-500">Total Tokens</span>
                     <span className="font-semibold tabular-nums">{toNumber(run.llmTotalTokens)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Environment</span>
+                    <span className="text-default-500">Environment</span>
                     <span className="text-xs">{run.executionEnvironment ?? "n/a"}</span>
                   </div>
                 </div>
@@ -240,16 +242,16 @@ function RunDetail({ run }: { run: RunGroup }) {
             </div>
 
             {/* Package reports table */}
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-border bg-muted/40">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-lg border border-divider bg-content1 overflow-hidden">
+              <div className="px-4 py-3 border-b border-divider bg-default-100/40">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-default-500">
                   Package Reports ({run.reports.length})
                 </h4>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/20">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-default-500 bg-default-100/20">
                       <th className="px-4 py-2 font-medium">Package</th>
                       <th className="px-4 py-2 font-medium">Coverage</th>
                       <th className="px-4 py-2 font-medium">Tests</th>
@@ -259,7 +261,7 @@ function RunDetail({ run }: { run: RunGroup }) {
                   </thead>
                   <tbody>
                     {run.reports.map((report) => (
-                      <tr key={report.id} className="border-t border-border/50">
+                      <tr key={report.id} className="border-t border-divider/50">
                         <td className="px-4 py-2 font-mono text-xs">{report.packageId ?? "root"}</td>
                         <td className="px-4 py-2">
                           <CoverageBar value={report.overallCoverage} />
@@ -276,16 +278,16 @@ function RunDetail({ run }: { run: RunGroup }) {
 
             {/* Detailed LLM metrics table */}
             {run.reports.length > 0 && run.reports[0].llmProvider && (
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-muted/40">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="rounded-lg border border-divider bg-content1 overflow-hidden">
+                <div className="px-4 py-3 border-b border-divider bg-default-100/40">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-default-500">
                     Detailed LLM Metrics
                   </h4>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/20">
+                      <tr className="text-left text-[11px] uppercase tracking-wider text-default-500 bg-default-100/20">
                         <th className="px-4 py-2 font-medium">Package</th>
                         <th className="px-4 py-2 font-medium">Provider</th>
                         <th className="px-4 py-2 font-medium">Model</th>
@@ -296,7 +298,7 @@ function RunDetail({ run }: { run: RunGroup }) {
                     </thead>
                     <tbody>
                       {run.reports.map((report) => (
-                        <tr key={report.id} className="border-t border-border/50">
+                        <tr key={report.id} className="border-t border-divider/50">
                           <td className="px-4 py-2 font-mono text-xs">{report.packageId ?? "root"}</td>
                           <td className="px-4 py-2">{report.llmProvider ?? "n/a"}</td>
                           <td className="px-4 py-2 font-mono text-xs">{report.llmModel ?? "n/a"}</td>
@@ -327,6 +329,8 @@ function RunsContent(props: { project: Project }) {
     reports: [],
     expandedRunId: null,
     selectedPackageId: null,
+    compareMode: false,
+    compareSelection: [null as unknown as string, null],
     error: null
   });
 
@@ -394,7 +398,7 @@ function RunsContent(props: { project: Project }) {
   }
 
   if (state.loading) {
-    return <Panel><p className="text-sm text-muted-foreground">Loading runs...</p></Panel>;
+    return <Panel><p className="text-sm text-default-500">Loading runs...</p></Panel>;
   }
 
   if (state.error) {
@@ -406,36 +410,96 @@ function RunsContent(props: { project: Project }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ---- Summary strip ---- */}
-      <div className="flex items-center gap-6 rounded-lg border border-border bg-card px-5 py-3">
+      <div className="flex items-center gap-6 rounded-lg border border-divider bg-content1 px-5 py-3">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Runs</span>
+          <span className="text-default-500">Runs</span>
           <span className="font-semibold tabular-nums">{toNumber(runGroups.length)}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="h-4 w-px bg-divider" />
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Latest</span>
+          <span className="text-default-500">Latest</span>
           <span className="font-medium text-xs">{latestRunDate}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="h-4 w-px bg-divider" />
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Total Tests</span>
+          <span className="text-default-500">Total Tests</span>
           <span className="font-semibold tabular-nums">{toNumber(totalTests)}</span>
         </div>
+        <div className="ml-auto">
+          <button
+            onClick={() => setState(prev => ({ ...prev, compareMode: !prev.compareMode, compareSelection: [null as unknown as string, null] }))}
+            className={cn("rounded-md px-3 py-1 text-xs font-medium transition-colors", state.compareMode ? "bg-primary text-primary-foreground" : "bg-default-200 text-foreground hover:bg-default-200/80")}
+          >
+            {state.compareMode ? "Exit Compare" : "Compare"}
+          </button>
+        </div>
       </div>
+
+      {/* ---- Comparison Panel ---- */}
+      {state.compareMode && state.compareSelection[0] && state.compareSelection[1] && (() => {
+        const runA = runGroups.find(r => r.runId === state.compareSelection[0]);
+        const runB = runGroups.find(r => r.runId === state.compareSelection[1]);
+        if (!runA || !runB) return null;
+
+        const covDelta = runB.avgCoverage - runA.avgCoverage;
+        const testsDelta = runB.totalTests - runA.totalTests;
+        const tokensDelta = runB.llmTotalTokens - runA.llmTotalTokens;
+
+        const deltaColor = (d: number) => d > 0 ? "text-emerald-600 dark:text-emerald-400" : d < 0 ? "text-rose-600 dark:text-rose-400" : "text-default-500";
+        const deltaSign = (d: number) => d > 0 ? "+" : "";
+
+        return (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Run Comparison</h3>
+              <button
+                onClick={() => setState(prev => ({ ...prev, compareSelection: [null as unknown as string, null] }))}
+                className="text-xs text-default-500 hover:text-foreground"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xs text-default-500 mb-1">Coverage</p>
+                <p className={cn("text-lg font-bold", deltaColor(covDelta))}>{deltaSign(covDelta)}{toPercent(covDelta)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-default-500 mb-1">Tests</p>
+                <p className={cn("text-lg font-bold", deltaColor(testsDelta))}>{deltaSign(testsDelta)}{toNumber(testsDelta)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-default-500 mb-1">Tokens</p>
+                <p className={cn("text-lg font-bold", deltaColor(-tokensDelta))}>{deltaSign(tokensDelta)}{toNumber(tokensDelta)}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-md bg-content1 border border-divider p-2">
+                <p className="text-default-500">Run A: <code className="font-mono">{truncate(runA.runId, 12)}</code></p>
+                <p className="mt-0.5">{toDateTime(runA.createdAt)} — {toPercent(runA.avgCoverage)}</p>
+              </div>
+              <div className="rounded-md bg-content1 border border-divider p-2">
+                <p className="text-default-500">Run B: <code className="font-mono">{truncate(runB.runId, 12)}</code></p>
+                <p className="mt-0.5">{toDateTime(runB.createdAt)} — {toPercent(runB.avgCoverage)}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ---- Package filter pills ---- */}
       {packages.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-muted-foreground mr-1">Package:</span>
+          <span className="text-xs text-default-500 mr-1">Package:</span>
           <button
             onClick={() => setState(prev => ({ ...prev, selectedPackageId: null }))}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               state.selectedPackageId === null
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                : "bg-default-200 text-foreground hover:bg-default-200/80"
             )}
           >
             All
@@ -448,7 +512,7 @@ function RunsContent(props: { project: Project }) {
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 state.selectedPackageId === pkg.id
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  : "bg-default-200 text-foreground hover:bg-default-200/80"
               )}
             >
               {pkg.label}
@@ -458,11 +522,11 @@ function RunsContent(props: { project: Project }) {
       )}
 
       {/* ---- Data table ---- */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-lg border border-divider bg-content1 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/40">
+              <tr className="text-left text-[11px] uppercase tracking-wider text-default-500 border-b border-divider bg-default-100/40">
                 <th className="w-8 px-3 py-3" />
                 <th className="px-3 py-3 font-medium">Date</th>
                 <th className="px-3 py-3 font-medium">Run ID</th>
@@ -481,15 +545,37 @@ function RunsContent(props: { project: Project }) {
                     <tr
                       onClick={() => toggleExpand(run.runId)}
                       className={cn(
-                        "border-b border-border/50 cursor-pointer transition-colors",
+                        "border-b border-divider/50 cursor-pointer transition-colors",
                         isExpanded
-                          ? "bg-muted/50"
-                          : "hover:bg-muted/30"
+                          ? "bg-default-100/50"
+                          : "hover:bg-default-100/30"
                       )}
                     >
-                      {/* Chevron */}
-                      <td className="px-3 py-3 text-muted-foreground">
-                        {isExpanded ? (
+                      {/* Chevron / Compare checkbox */}
+                      <td className="px-3 py-3 text-default-500">
+                        {state.compareMode ? (
+                          <input
+                            type="checkbox"
+                            checked={state.compareSelection[0] === run.runId || state.compareSelection[1] === run.runId}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setState(prev => {
+                                const sel = [...prev.compareSelection] as [string, string | null];
+                                if (e.target.checked) {
+                                  if (!sel[0]) sel[0] = run.runId;
+                                  else if (!sel[1]) sel[1] = run.runId;
+                                  else { sel[0] = sel[1]; sel[1] = run.runId; }
+                                } else {
+                                  if (sel[0] === run.runId) sel[0] = sel[1] ?? (null as unknown as string);
+                                  if (sel[1] === run.runId) sel[1] = null;
+                                }
+                                return { ...prev, compareSelection: sel };
+                              });
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-4 w-4 rounded border-divider"
+                          />
+                        ) : isExpanded ? (
                           <ChevronDown className="h-4 w-4" />
                         ) : (
                           <ChevronRight className="h-4 w-4" />
@@ -503,7 +589,7 @@ function RunsContent(props: { project: Project }) {
 
                       {/* Run ID */}
                       <td className="px-3 py-3">
-                        <code className="font-mono text-xs text-muted-foreground">
+                        <code className="font-mono text-xs text-default-500">
                           {truncate(run.runId, 12)}
                         </code>
                       </td>
@@ -518,11 +604,11 @@ function RunsContent(props: { project: Project }) {
                       {/* Branch */}
                       <td className="px-3 py-3">
                         {run.branch ? (
-                          <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                          <code className="font-mono text-xs bg-default-100 px-1.5 py-0.5 rounded">
                             {truncate(run.branch, 20)}
                           </code>
                         ) : (
-                          <span className="text-xs text-muted-foreground">--</span>
+                          <span className="text-xs text-default-500">--</span>
                         )}
                       </td>
 
@@ -537,7 +623,7 @@ function RunsContent(props: { project: Project }) {
                       </td>
 
                       {/* Tokens */}
-                      <td className="px-3 py-3 text-xs tabular-nums text-muted-foreground">
+                      <td className="px-3 py-3 text-xs tabular-nums text-default-500">
                         {compactTokens(run.llmTotalTokens)}
                       </td>
                     </tr>
@@ -550,7 +636,7 @@ function RunsContent(props: { project: Project }) {
 
               {runGroups.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={8} className="px-3 py-10 text-center text-sm text-default-500">
                     No runs match the current filter.
                   </td>
                 </tr>

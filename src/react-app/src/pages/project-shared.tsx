@@ -67,7 +67,7 @@ export function ProjectPageShell(props: {
   if (loading) {
     return (
       <Panel>
-        <p className="text-sm text-muted-foreground">Loading project details...</p>
+        <p className="text-sm text-default-500">Loading project details...</p>
       </Panel>
     );
   }

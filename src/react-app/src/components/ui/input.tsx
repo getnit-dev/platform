@@ -1,17 +1,27 @@
 import * as React from "react";
+import { Input as HeroInput } from "@heroui/react";
 import { cn } from "../../lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, value, onChange, placeholder, disabled, name, id, ...rest }, ref) => {
     return (
-      <input
-        type={type}
-        className={cn(
-          "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
+      <HeroInput
         ref={ref}
-        {...props}
+        type={type}
+        value={value as string | undefined}
+        onChange={onChange}
+        placeholder={placeholder}
+        isDisabled={disabled}
+        name={name}
+        id={id}
+        variant="bordered"
+        size="sm"
+        classNames={{
+          inputWrapper: cn("min-h-9", className),
+        }}
+        aria-label={rest["aria-label"]}
       />
     );
   }
