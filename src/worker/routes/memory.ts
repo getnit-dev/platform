@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asInteger, asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -368,6 +369,15 @@ memoryRoutes.post("/", async (c) => {
     }
   }
 
+  logActivity({
+    db: c.env.DB,
+    projectId,
+    eventType: "memory_synced",
+    source: actorSource(resolved.actor),
+    summary: `Memory synced (v${globalVersion}${didMerge ? ", merged" : ""}, ${Object.keys(mergedPackages).length} packages)`,
+    metadata: { version: globalVersion, merged: didMerge, packageCount: Object.keys(mergedPackages).length }
+  });
+
   return c.json(
     {
       version: globalVersion,
@@ -551,6 +561,15 @@ memoryRoutes.delete("/", async (c) => {
     await c.env.DB.prepare("DELETE FROM project_memory WHERE project_id = ?").bind(resolved.projectId).run();
     await c.env.DB.prepare("DELETE FROM package_memory WHERE project_id = ?").bind(resolved.projectId).run();
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "memory_reset",
+    source: actorSource(resolved.actor),
+    summary: packageName ? `Package memory reset: ${packageName}` : "All project memory reset",
+    metadata: { packageName }
+  });
 
   return c.json({ deleted: true });
 });

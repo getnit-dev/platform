@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -52,6 +53,15 @@ docCoverageRoutes.post("/", async (c) => {
   if (statements.length > 0) {
     await c.env.DB.batch(statements);
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "doc_coverage_uploaded",
+    source: actorSource(resolved.actor),
+    summary: `${statements.length} doc coverage record(s) uploaded`,
+    metadata: { count: statements.length, runId }
+  });
 
   return c.json({ inserted: statements.length }, 201);
 });

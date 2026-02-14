@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -99,6 +100,15 @@ promptRoutes.post("/", async (c) => {
   if (statements.length > 0) {
     await c.env.DB.batch(statements);
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "prompts_uploaded",
+    source: actorSource(resolved.actor),
+    summary: `${statements.length} prompt record(s) uploaded`,
+    metadata: { count: statements.length }
+  });
 
   return c.json({ inserted: statements.length }, 201);
 });

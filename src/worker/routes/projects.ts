@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getRequestActor } from "../lib/access";
+import { logActivity } from "../lib/activity";
 import { asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -112,6 +113,15 @@ projectRoutes.post("/", async (c) => {
   )
     .bind(projectId, actor.userId, name, repoUrl, repoProvider, defaultBranch)
     .run();
+
+  logActivity({
+    db: c.env.DB,
+    projectId,
+    eventType: "project_created",
+    source: "dashboard",
+    summary: `Project "${name}" created`,
+    metadata: { projectId, name, repoUrl }
+  });
 
   return c.json(
     {
@@ -247,6 +257,15 @@ projectRoutes.patch("/:projectId", async (c) => {
     return c.json({ error: "Project not found" }, 404);
   }
 
+  logActivity({
+    db: c.env.DB,
+    projectId,
+    eventType: "project_updated",
+    source: "dashboard",
+    summary: `Project settings updated`,
+    metadata: { fields: values.filter(Boolean) }
+  });
+
   return c.json({ updated: true });
 });
 
@@ -257,6 +276,9 @@ projectRoutes.delete("/:projectId", async (c) => {
   }
 
   const projectId = c.req.param("projectId");
+
+  // Note: project_deleted is not logged because activity_log has ON DELETE CASCADE,
+  // so any log entry would be removed along with the project.
 
   const result = await c.env.DB.prepare("DELETE FROM projects WHERE id = ? AND user_id = ?")
     .bind(projectId, actor.userId)

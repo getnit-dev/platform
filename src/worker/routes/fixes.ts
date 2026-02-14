@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -62,6 +63,15 @@ fixRoutes.post("/", async (c) => {
     asNonEmptyString(payload.verificationStatus),
     r2Key
   ).run();
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "fix_generated",
+    source: actorSource(resolved.actor),
+    summary: `Fix generated for bug ${bugId}`,
+    metadata: { fixId: id, bugId }
+  });
 
   return c.json({ fixId: id }, 201);
 });

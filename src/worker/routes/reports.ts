@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asInteger, asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -155,6 +156,15 @@ reportRoutes.post("/", async (c) => {
       prUrl
     )
     .run();
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "report_uploaded",
+    source: actorSource(resolved.actor),
+    summary: `Coverage report uploaded (${runMode}, overall: ${overallCoverage ?? "N/A"}%)`,
+    metadata: { reportId, runId, runMode, branch, overallCoverage }
+  });
 
   return c.json({ reportId, reportR2Key }, 201);
 });

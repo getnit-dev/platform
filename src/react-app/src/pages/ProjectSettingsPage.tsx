@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, Trash2, Users, AlertTriangle, Shield, Plus, History, Play, Bug, Zap, Database, GitPullRequest } from "lucide-react";
+import { Copy, Trash2, Users, AlertTriangle, Shield, Plus, History, Play, Bug, Zap, Database, GitPullRequest, ShieldAlert, FileSearch, Wrench, BookOpen, Key, FolderPlus, Settings, Route } from "lucide-react";
 import { EmptyState, Panel, TextInput } from "../components/ui";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -231,10 +231,24 @@ function TeamTab(props: {
 
 const ACTIVITY_ICONS: Record<string, typeof Play> = {
   report_uploaded: Play,
-  bugs_uploaded: Bug,
   drift_uploaded: Zap,
   memory_synced: Database,
+  memory_reset: Database,
   webhook_received: GitPullRequest,
+  bug_created: Bug,
+  bug_updated: Bug,
+  vulnerability_found: ShieldAlert,
+  vulnerability_resolved: Shield,
+  coverage_gaps_uploaded: FileSearch,
+  fix_generated: Wrench,
+  risk_assessed: AlertTriangle,
+  doc_coverage_uploaded: BookOpen,
+  prompts_uploaded: Play,
+  routes_discovered: Route,
+  api_key_created: Key,
+  api_key_revoked: Key,
+  project_created: FolderPlus,
+  project_updated: Settings,
 };
 
 function ActivityTab(props: { projectId: string }) {
@@ -260,14 +274,14 @@ function ActivityTab(props: { projectId: string }) {
     return (
       <div className="rounded-lg border border-dashed border-divider py-8 text-center">
         <History className="mx-auto h-8 w-8 text-default-500/50" />
-        <p className="mt-2 text-sm text-default-500">No recent activity. CLI events will appear here.</p>
+        <p className="mt-2 text-sm text-default-500">No recent activity. All project events will appear here.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-default-500 mb-3">Recent CLI and webhook activity for this project.</p>
+      <p className="text-sm text-default-500 mb-3">Recent activity for this project.</p>
       {events.map(event => {
         const Icon = ACTIVITY_ICONS[event.eventType] ?? History;
         return (

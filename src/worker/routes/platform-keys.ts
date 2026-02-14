@@ -1,5 +1,6 @@
 import { Hono, type Context } from "hono";
 import { getRequestActor, userOwnsProject } from "../lib/access";
+import { logActivity } from "../lib/activity";
 import { sha256Hex } from "../lib/crypto";
 import { asNonEmptyString, isRecord } from "../lib/validation";
 import type { AppEnv } from "../types";
@@ -126,6 +127,17 @@ platformKeyRoutes.post("/", async (c) => {
     )
     .run();
 
+  if (projectId) {
+    logActivity({
+      db: c.env.DB,
+      projectId,
+      eventType: "api_key_created",
+      source: "dashboard",
+      summary: `API key created${name ? `: ${name}` : ""}`,
+      metadata: { keyId: id, name }
+    });
+  }
+
   return c.json(
     {
       key: plainKey,
@@ -154,6 +166,21 @@ platformKeyRoutes.post("/:keyId/revoke", async (c) => {
 
   if (Number(result.meta?.changes ?? 0) === 0) {
     return c.json({ error: "Key not found" }, 404);
+  }
+
+  const keyRow = await c.env.DB.prepare(
+    "SELECT project_id AS projectId FROM platform_api_keys WHERE id = ?"
+  ).bind(keyId).first<{ projectId: string | null }>();
+
+  if (keyRow?.projectId) {
+    logActivity({
+      db: c.env.DB,
+      projectId: keyRow.projectId,
+      eventType: "api_key_revoked",
+      source: "dashboard",
+      summary: `API key revoked`,
+      metadata: { keyId }
+    });
   }
 
   return c.json({ revoked: true });

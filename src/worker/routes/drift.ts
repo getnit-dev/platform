@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -76,6 +77,15 @@ driftRoutes.post("/", async (c) => {
   }
 
   await c.env.DB.batch(statements);
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "drift_uploaded",
+    source: actorSource(resolved.actor),
+    summary: `${insertedIds.length} drift result(s) uploaded`,
+    metadata: { count: insertedIds.length }
+  });
 
   return c.json({ inserted: insertedIds.length, ids: insertedIds }, 201);
 });

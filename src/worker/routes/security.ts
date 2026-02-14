@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -85,6 +86,15 @@ securityRoutes.post("/", async (c) => {
   if (statements.length > 0) {
     await c.env.DB.batch(statements);
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "vulnerability_found",
+    source: actorSource(resolved.actor),
+    summary: `${statements.length} security finding(s) uploaded`,
+    metadata: { count: statements.length, runId }
+  });
 
   return c.json({ inserted: statements.length }, 201);
 });
@@ -174,6 +184,21 @@ securityRoutes.patch("/:findingId", async (c) => {
 
   if (Number(result.meta?.changes ?? 0) === 0) {
     return c.json({ error: "Finding not found" }, 404);
+  }
+
+  const finding = await c.env.DB.prepare(
+    "SELECT project_id AS projectId FROM security_findings WHERE id = ?"
+  ).bind(findingId).first<{ projectId: string }>();
+
+  if (finding) {
+    logActivity({
+      db: c.env.DB,
+      projectId: finding.projectId,
+      eventType: "vulnerability_resolved",
+      source: actorSource(actor),
+      summary: `Security finding marked as ${status}`,
+      metadata: { findingId, status }
+    });
   }
 
   return c.json({ updated: true });

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -80,6 +81,15 @@ bugRoutes.post("/", async (c) => {
       asNonEmptyString(payload.stackTrace)
     )
     .run();
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "bug_created",
+    source: actorSource(resolved.actor),
+    summary: `Bug detected in ${filePath}: ${description.slice(0, 100)}`,
+    metadata: { bugId: id, filePath, severity: asNonEmptyString(payload.severity) ?? "medium" }
+  });
 
   return c.json({ bugId: id }, 201);
 });
@@ -225,6 +235,15 @@ bugRoutes.patch("/:bugId", async (c) => {
   if (Number(result.meta?.changes ?? 0) === 0) {
     return c.json({ error: "Bug not found" }, 404);
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: existing.projectId,
+    eventType: "bug_updated",
+    source: actorSource(actor),
+    summary: `Bug ${bugId} updated${status ? ` to ${status}` : ""}`,
+    metadata: { bugId, status }
+  });
 
   return c.json({ updated: true });
 });

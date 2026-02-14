@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { Activity, Bug, GitPullRequest, GitCommit, Coins, AlertCircle } from "lucide-react";
+import { Play, Bug, GitPullRequest, GitCommit, Coins, AlertCircle } from "lucide-react";
 import type { Project } from "../lib/api";
 import { toNumber } from "../lib/format";
 
 const STATS = [
-  { key: "totalRuns", label: "Runs", icon: Activity, color: "text-primary" },
+  { key: "totalRuns", label: "Runs", icon: Play, color: "text-primary" },
   { key: "detectedBugs", label: "Bugs", icon: Bug, color: "text-red-500" },
   { key: "createdIssues", label: "Issues", icon: AlertCircle, color: "text-amber-500" },
   { key: "createdPRs", label: "PRs", icon: GitPullRequest, color: "text-violet-500" },

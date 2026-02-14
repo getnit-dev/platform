@@ -9,7 +9,7 @@ import { toNumber, truncate } from "../lib/format";
 import {
   Plus,
   GitBranch,
-  Activity,
+  Play as PlayIcon,
   Bug as BugIcon,
   FlaskConical,
   GitPullRequest,
@@ -109,7 +109,7 @@ function ProjectCard({
         {/* Stats */}
         <div className="grid grid-cols-5 gap-2 border-t border-divider pt-3">
           <div className="flex flex-col items-center gap-1">
-            <Activity className="h-3.5 w-3.5 text-default-500" />
+            <PlayIcon className="h-3.5 w-3.5 text-default-500" />
             <span className="text-sm font-medium tabular-nums">{toNumber(project.totalRuns ?? 0)}</span>
             <span className="text-[10px] text-default-500">Runs</span>
           </div>

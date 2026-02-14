@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { canAccessProject, getRequestActor, resolveProjectForWrite } from "../lib/access";
+import { actorSource, logActivity } from "../lib/activity";
 import { asNonEmptyString, asNumber, isRecord, parseLimit } from "../lib/validation";
 import type { AppEnv } from "../types";
 
@@ -63,6 +64,15 @@ routeDiscoveryRoutes.post("/", async (c) => {
   if (statements.length > 0) {
     await c.env.DB.batch(statements);
   }
+
+  logActivity({
+    db: c.env.DB,
+    projectId: resolved.projectId,
+    eventType: "routes_discovered",
+    source: actorSource(resolved.actor),
+    summary: `${statements.length} route(s) discovered`,
+    metadata: { count: statements.length, runId }
+  });
 
   return c.json({ inserted: statements.length }, 201);
 });
